@@ -159,7 +159,7 @@
                         <h2 class="text-3xl font-display font-bold text-white uppercase tracking-wide">Vue d'ensemble</h2>
                         <p class="text-destiny-text mt-1 text-sm">Données générales de compte issues de l'Épreuve et de l'Avant-Garde.</p>
                     </div>
-                    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6" id="dashboard-stats-container"></div>
+                    <div id="dashboard-stats-container" class="space-y-10"></div>
                 </div>
 
                 <!-- ONGLET 2 : ESCOUADE -->
@@ -181,6 +181,12 @@
                             </h2>
                             <p class="text-destiny-text mt-1 text-sm">Transfert tactique de votre armement stocké vers vos Gardiens actifs.</p>
                         </div>
+                    </div>
+
+                    <div id="vault-filter-bar" class="hidden flex-wrap gap-2 mb-6 bg-black/30 p-1.5 rounded-xl border border-destiny-border w-fit">
+                        <button data-filter="all" onclick="setVaultFilter('all', this)" class="vault-filter-btn px-4 py-2 rounded-lg text-xs font-bold uppercase tracking-wider bg-accent text-black transition-all"><i class="fa-solid fa-layer-group mr-2"></i>Tout <span class="opacity-70" data-count="all">0</span></button>
+                        <button data-filter="weapon" onclick="setVaultFilter('weapon', this)" class="vault-filter-btn px-4 py-2 rounded-lg text-xs font-bold uppercase tracking-wider text-gray-400 hover:text-white hover:bg-white/5 transition-all"><i class="fa-solid fa-gun mr-2"></i>Armes <span class="opacity-70" data-count="weapon">0</span></button>
+                        <button data-filter="armor" onclick="setVaultFilter('armor', this)" class="vault-filter-btn px-4 py-2 rounded-lg text-xs font-bold uppercase tracking-wider text-gray-400 hover:text-white hover:bg-white/5 transition-all"><i class="fa-solid fa-shield-halved mr-2"></i>Armures <span class="opacity-70" data-count="armor">0</span></button>
                     </div>
 
                     <div id="vault-loader" class="hidden flex-col items-center justify-center py-20 bg-destiny-card/30 rounded-2xl border border-destiny-border">
@@ -301,6 +307,53 @@
         const BUCKET_NAMES = { [BUCKETS.KINETIC]: "Cinétique", [BUCKETS.ENERGY]: "Énergétique", [BUCKETS.POWER]: "Puissante" };
         const classHashes = { 671679327: 'Chasseur', 3655393761: 'Titan', 2271682572: 'Arcaniste' };
         const raceHashes = { 3887404748: 'Humain', 898687150: 'Exo', 2803282938: 'Éveillé' };
+
+        // itemType : 2 = Armure, 3 = Arme. classType : 0 Titan, 1 Chasseur, 2 Arcaniste, 3 = toutes classes.
+        const ITEM_TYPE = { ARMOR: 2, WEAPON: 3 };
+        const CLASS_TYPE_BY_HASH = { 3655393761: 0, 671679327: 1, 2271682572: 2 };
+        const CLASS_ICON_BY_HASH = { 3655393761: 'fa-shield', 671679327: 'fa-angle-up', 2271682572: 'fa-book' };
+
+        let vaultFilter = 'all'; // 'all' | 'weapon' | 'armor'
+        let raidCatalog = null;  // catalogue complet des incursions (depuis le Manifeste)
+
+        // Libellés FR des statistiques de compte (le reste est dérivé du nom technique).
+        const STAT_LABELS = {
+            secondsPlayed: "Temps joué", kills: "Éliminations", deaths: "Morts", assists: "Assistances",
+            killsDeathsRatio: "Ratio K/D", killsDeathsAssists: "Ratio KDA", efficiency: "Efficacité",
+            activitiesEntered: "Activités lancées", activitiesCleared: "Activités terminées",
+            activitiesWon: "Victoires", winLossRatio: "Ratio V/D", combatRating: "Cote de combat",
+            score: "Score", averageScorePerKill: "Score moyen / élim.", averageScorePerLife: "Score moyen / vie",
+            averageKillDistance: "Distance moy. d'élim.", totalKillDistance: "Distance totale d'élim.",
+            averageLifespan: "Durée de vie moyenne", longestSingleLife: "Plus longue vie (s)",
+            bestSingleGameKills: "Meilleures élim. (1 partie)", bestSingleGameScore: "Meilleur score (1 partie)",
+            longestKillSpree: "Plus longue série d'élim.", mostPrecisionKills: "Max élim. précision (1 partie)",
+            precisionKills: "Éliminations de précision", resurrectionsPerformed: "Résurrections effectuées",
+            resurrectionsReceived: "Résurrections reçues", suicides: "Suicides", objectivesCompleted: "Objectifs complétés",
+            weaponBestType: "Meilleure arme (type)", fastestCompletionMs: "Complétion la + rapide",
+            longestKillSpree2: "Série d'élim.", allParticipantsCount: "Participants", teamScore: "Score d'équipe",
+            adventuresCompleted: "Aventures terminées", publicEventsCompleted: "Évènements publics",
+            heroicPublicEventsCompleted: "Évènements publics héroïques", remainingTimeAfterQuitSeconds: "Temps restant après abandon",
+            longestSingleLifeMs: "Plus longue vie", precisionKillsPercentage: "% élim. de précision"
+        };
+
+        // Libellés FR des modes de jeu (résultats fusionnés des statistiques).
+        const MODE_LABELS = {
+            allPvE: "Joueur c. Environnement (JcE)", allPvP: "Joueur c. Joueur (JcJ)",
+            raid: "Incursions", allStrikes: "Assauts", nightfall: "Nuit Noire",
+            heroicNightfall: "Nuit Noire Héroïque", allMayhem: "Chaos", allDoubles: "Duos",
+            elimination: "Élimination", control: "Contrôle", clash: "Affrontement",
+            ironBanner: "Bannière de Fer", trials_of_osiris: "Épreuves d'Osiris",
+            trialsofthenine: "Épreuves des Neuf", allPvECompetitive: "Gambit", pvecompetitive: "Gambit",
+            gambit: "Gambit", rumble: "Mêlée générale", supremacy: "Suprématie",
+            survival: "Survie", countdown: "Compte à rebours", allMatchmade: "Activités matchmakées",
+            patrol: "Patrouille", story: "Histoire", allStandardPvP: "JcJ standard"
+        };
+        const MODE_ICON = {
+            allPvE: 'fa-earth-americas', allPvP: 'fa-crosshairs', raid: 'fa-dragon',
+            allStrikes: 'fa-bolt', nightfall: 'fa-moon', heroicNightfall: 'fa-moon',
+            ironBanner: 'fa-flag', trials_of_osiris: 'fa-trophy', gambit: 'fa-coins',
+            allPvECompetitive: 'fa-coins', pvecompetitive: 'fa-coins'
+        };
 
         // Palettes de thèmes : [rgb base, rgb survol] (format "R G B" pour rgb(... / alpha))
         const THEMES = {
@@ -533,12 +586,12 @@
                 membershipType = destinyProfile.membershipType;
 
                 updateLoaderText("Rapatriement des inventaires...");
-                const profileRes = await fetchAPI(`/Destiny2/${membershipType}/Profile/${destinyMembershipId}/?components=100,102,200,201,205`);
+                const profileRes = await fetchAPI(`/Destiny2/${membershipType}/Profile/${destinyMembershipId}/?components=100,102,200,201,205,300`);
                 globalProfileData = profileRes.Response;
                 renderCharacters(globalProfileData.characters.data);
 
                 updateLoaderText("Compilation des statistiques...");
-                fetchAPI(`/Destiny2/${membershipType}/Account/${destinyMembershipId}/Stats/?groups=1,2`)
+                fetchAPI(`/Destiny2/${membershipType}/Account/${destinyMembershipId}/Stats/?groups=1,2,3`)
                     .then(statsRes => {
                         if (statsRes.Response) renderDashboardStats(statsRes.Response.mergedAllCharacters.results);
                     });
@@ -571,34 +624,118 @@
         // ==========================================
         // RENDU : DASHBOARD & PERSONNAGES
         // ==========================================
+        // camelCase / snake_case -> libellé lisible (repli quand pas de traduction FR dédiée).
+        function humanize(key) {
+            return key
+                .replace(/^weaponKills/, '')
+                .replace(/([A-Z])/g, ' $1')
+                .replace(/[_-]+/g, ' ')
+                .replace(/\s+/g, ' ')
+                .trim()
+                .replace(/^./, c => c.toUpperCase());
+        }
+        function labelForStat(statId) { return STAT_LABELS[statId] || humanize(statId); }
+        function statValue(stat) { return stat?.basic?.displayValue ?? (stat?.basic?.value ?? '0'); }
+
         function renderDashboardStats(statsData) {
             const container = document.getElementById('dashboard-stats-container');
-            const pvp = statsData.allPvP.allTime;
-            const pve = statsData.allPvE.allTime;
+            const pve = statsData.allPvE?.allTime || {};
+            const pvp = statsData.allPvP?.allTime || {};
 
-            const createStat = (title, val, icon, colorHex) => `
-                <div class="bg-destiny-card border border-destiny-border p-6 rounded-2xl relative overflow-hidden group">
+            // ---- Cartes "faits saillants" (combiné JcE + JcJ) ----
+            const sumVal = (a, b, id) => (parseInt(a?.[id]?.basic?.value || 0) + parseInt(b?.[id]?.basic?.value || 0));
+            const hrs = Math.floor(((pve.secondsPlayed?.basic?.value || 0) + (pvp.secondsPlayed?.basic?.value || 0)) / 3600);
+            const totalKills = sumVal(pve, pvp, 'kills');
+            const totalDeaths = sumVal(pve, pvp, 'deaths');
+            const totalAssists = sumVal(pve, pvp, 'assists');
+            const accountKD = totalDeaths > 0 ? (totalKills / totalDeaths).toFixed(2) : totalKills.toFixed(2);
+
+            const highlight = (title, val, icon, colorHex) => `
+                <div class="bg-destiny-card border border-destiny-border p-5 rounded-2xl relative overflow-hidden group">
                     <div class="absolute top-0 left-0 w-1 h-full" style="background-color: ${colorHex}"></div>
                     <div class="flex items-center gap-4 relative z-10">
-                        <div class="w-12 h-12 rounded-xl flex items-center justify-center text-2xl bg-black/40 shadow-inner" style="color: ${colorHex}">
+                        <div class="w-11 h-11 rounded-xl flex items-center justify-center text-xl bg-black/40 shadow-inner shrink-0" style="color: ${colorHex}">
                             <i class="fa-solid ${icon}"></i>
                         </div>
-                        <div>
-                            <p class="text-gray-400 text-[10px] uppercase font-bold tracking-widest">${title}</p>
-                            <h4 class="text-3xl font-black text-white mt-0.5 group-hover:scale-105 transition-transform origin-left">${val || '0'}</h4>
+                        <div class="overflow-hidden">
+                            <p class="text-gray-400 text-[10px] uppercase font-bold tracking-widest truncate">${title}</p>
+                            <h4 class="text-2xl font-black text-white mt-0.5 truncate">${val ?? '0'}</h4>
                         </div>
                     </div>
                 </div>`;
 
-            const hrs = Math.floor(((pvp?.secondsPlayed?.basic?.value || 0) + (pve?.secondsPlayed?.basic?.value || 0)) / 3600);
-            const totalKills = (parseInt(pvp?.kills?.basic?.value || 0) + parseInt(pve?.kills?.basic?.value || 0)).toLocaleString();
+            const highlightsHTML = `
+                <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
+                    ${highlight("Temps Global", `${hrs}h`, "fa-clock", "#3b82f6")}
+                    ${highlight("Éliminations Totales", totalKills.toLocaleString(), "fa-crosshairs", "#ef4444")}
+                    ${highlight("Morts Totales", totalDeaths.toLocaleString(), "fa-skull", "#9ca3af")}
+                    ${highlight("Assistances", totalAssists.toLocaleString(), "fa-handshake-angle", "#a78bfa")}
+                    ${highlight("K/D Compte", accountKD, "fa-chart-line", "rgb(var(--accent-rgb))")}
+                    ${highlight("K/D Épreuve", pvp.killsDeathsRatio?.basic?.displayValue || "0.0", "fa-gun", "#ef4444")}
+                    ${highlight("Activités JcE Terminées", pve.activitiesCleared?.basic?.displayValue || "0", "fa-flag-checkered", "#10b981")}
+                    ${highlight("Victoires JcJ", pvp.activitiesWon?.basic?.displayValue || "0", "fa-trophy", "#f59e0b")}
+                </div>`;
 
-            container.innerHTML = `
-                ${createStat("Temps Global Engagé", `${hrs}h`, "fa-clock", "#3b82f6")}
-                ${createStat("Cibles Éliminées", totalKills, "fa-crosshairs", "#ef4444")}
-                ${createStat("Ratio K/D (Épreuve)", pvp?.killsDeathsRatio?.basic?.displayValue || "0.0", "fa-skull", "rgb(var(--accent-rgb))")}
-                ${createStat("Arme Favorite PvE", pve?.weaponBestType?.displayValue || "N/A", "fa-gun", "#10b981")}
-            `;
+            // ---- Sections détaillées : toutes les stats par mode ----
+            const results = statsData;
+            const orderedKeys = Object.keys(MODE_LABELS).filter(k => results[k]?.allTime);
+            const otherKeys = Object.keys(results).filter(k => results[k]?.allTime && !orderedKeys.includes(k));
+            const allModeKeys = [...orderedKeys, ...otherKeys];
+
+            const sectionsHTML = allModeKeys.map(modeKey => {
+                const all = results[modeKey].allTime;
+                const entries = Object.entries(all).filter(([, v]) => v?.basic);
+                if (entries.length === 0) return '';
+
+                // Répartition : stats générales / armes / médailles
+                const general = entries.filter(([id]) => !id.startsWith('weaponKills') && !id.startsWith('medal'));
+                const weapons = entries.filter(([id]) => id.startsWith('weaponKills'))
+                                       .sort((a, b) => (b[1].basic.value || 0) - (a[1].basic.value || 0));
+                const medals = entries.filter(([id]) => id.startsWith('medal'))
+                                      .sort((a, b) => (b[1].basic.value || 0) - (a[1].basic.value || 0));
+
+                const label = MODE_LABELS[modeKey] || humanize(modeKey);
+                const icon = MODE_ICON[modeKey] || 'fa-chart-simple';
+
+                const statChip = ([id, stat]) => `
+                    <div class="bg-black/30 border border-destiny-border rounded-lg px-3 py-2.5">
+                        <p class="text-[10px] text-gray-500 uppercase tracking-wide font-bold leading-tight truncate" title="${labelForStat(id)}">${labelForStat(id)}</p>
+                        <p class="text-white font-bold text-sm mt-0.5 truncate">${statValue(stat)}</p>
+                    </div>`;
+
+                let inner = `<div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2.5">${general.map(statChip).join('')}</div>`;
+
+                if (weapons.length) {
+                    inner += `
+                        <details class="mt-4 group/d">
+                            <summary class="cursor-pointer text-xs font-bold uppercase tracking-widest text-accent flex items-center gap-2 select-none">
+                                <i class="fa-solid fa-chevron-right text-[10px] transition-transform group-open/d:rotate-90"></i> Détail des armes (${weapons.length})
+                            </summary>
+                            <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2.5 mt-3">${weapons.map(statChip).join('')}</div>
+                        </details>`;
+                }
+                if (medals.length) {
+                    inner += `
+                        <details class="mt-3 group/m">
+                            <summary class="cursor-pointer text-xs font-bold uppercase tracking-widest text-accent flex items-center gap-2 select-none">
+                                <i class="fa-solid fa-chevron-right text-[10px] transition-transform group-open/m:rotate-90"></i> Médailles (${medals.length})
+                            </summary>
+                            <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2.5 mt-3">${medals.map(statChip).join('')}</div>
+                        </details>`;
+                }
+
+                return `
+                    <div class="bg-destiny-card/40 border border-destiny-border rounded-2xl p-6">
+                        <h3 class="text-base font-display font-bold text-white uppercase tracking-widest mb-5 flex items-center gap-3">
+                            <span class="w-9 h-9 rounded-lg bg-black/40 flex items-center justify-center text-accent"><i class="fa-solid ${icon}"></i></span>
+                            ${label}
+                            <span class="text-[10px] text-gray-500 font-mono normal-case tracking-normal ml-1">${entries.length} stats</span>
+                        </h3>
+                        ${inner}
+                    </div>`;
+            }).join('');
+
+            container.innerHTML = highlightsHTML + sectionsHTML;
         }
 
         function renderCharacters(chars) {
@@ -723,6 +860,21 @@
         // ==========================================
         // RENDU : LE COFFRE-FORT (BATCH OPTIMISÉ)
         // ==========================================
+        // Renvoie le niveau de puissance d'un objet instancié (composant 300), si disponible.
+        function getItemPower(instanceId) {
+            const inst = globalProfileData?.itemComponents?.instances?.data?.[instanceId];
+            return inst?.primaryStat?.value || null;
+        }
+
+        // Couleur de bordure selon la rareté de l'objet.
+        function tierBorder(def) {
+            const t = def.inventory?.tierTypeName;
+            if (t === 'Exotic') return 'border-destiny-exotic';
+            if (t === 'Legendary') return 'border-purple-500/70';
+            if (t === 'Rare') return 'border-blue-500/70';
+            return 'border-gray-600';
+        }
+
         async function renderVault() {
             const container = document.getElementById('vault-container');
             const loader = document.getElementById('vault-loader');
@@ -736,59 +888,111 @@
 
             // Traitement par lots pour respecter les limites de l'API (le cache absorbe les hits déjà connus).
             let processed = 0;
-            const BATCH_SIZE = 15;
+            const BATCH_SIZE = 20;
             for (let i = 0; i < uniqueHashes.length; i += BATCH_SIZE) {
                 const batch = uniqueHashes.slice(i, i + BATCH_SIZE);
                 await Promise.all(batch.map(h => getManifestDef('DestinyInventoryItemDefinition', h)));
                 processed += batch.length;
-                progress.textContent = `Analyse en cours : ${processed} / ${uniqueHashes.length}`;
+                progress.textContent = `Analyse en cours : ${Math.min(processed, uniqueHashes.length)} / ${uniqueHashes.length}`;
             }
 
-            let weaponCardsHTML = '';
-            let weaponCount = 0;
+            const chars = Object.values(globalProfileData.characters.data);
+            let cardsHTML = '';
+            const counts = { all: 0, weapon: 0, armor: 0 };
 
             for (const item of vaultItemsRaw) {
                 const def = manifestCache[`DestinyInventoryItemDefinition_${item.itemHash}`];
-                if (def && def.itemType === 3) {   // itemType 3 = arme
-                    weaponCount++;
-                    const isExotic = def.inventory.tierTypeName === 'Exotic';
+                if (!def) continue;
 
-                    let transferButtons = '';
-                    Object.values(globalProfileData.characters.data).forEach(char => {
-                        const classIcon = char.classHash === 671679327 ? 'fa-angle-up'
-                                         : char.classHash === 3655393761 ? 'fa-shield' : 'fa-book';
+                const isWeapon = def.itemType === ITEM_TYPE.WEAPON;
+                const isArmor = def.itemType === ITEM_TYPE.ARMOR;
+                if (!isWeapon && !isArmor) continue;   // on ne garde qu'armes & armures
+
+                const cat = isWeapon ? 'weapon' : 'armor';
+                counts.all++; counts[cat]++;
+
+                const isExotic = def.inventory?.tierTypeName === 'Exotic';
+                const power = getItemPower(item.itemInstanceId);
+                const armorClassType = isArmor ? def.classType : 3; // 3 = toutes classes
+
+                // Boutons de transfert : pour une armure, seuls les Gardiens de la bonne classe sont actifs.
+                let transferButtons = '';
+                chars.forEach(char => {
+                    const compatible = armorClassType === 3 || CLASS_TYPE_BY_HASH[char.classHash] === armorClassType;
+                    const icon = CLASS_ICON_BY_HASH[char.classHash] || 'fa-user';
+                    if (compatible) {
                         transferButtons += `
                             <button onclick="actionTransfer(this, '${item.itemHash}', '${item.itemInstanceId}', '${char.characterId}', false)" class="flex-1 bg-destiny-border hover:bg-accent hover:text-black py-2 rounded text-xs transition-colors" title="Prendre sur ${classHashes[char.classHash]}">
-                                <i class="fa-solid ${classIcon}"></i>
+                                <i class="fa-solid ${icon}"></i>
                             </button>`;
-                    });
+                    } else {
+                        transferButtons += `
+                            <button disabled class="flex-1 bg-black/40 py-2 rounded text-xs text-gray-700 cursor-not-allowed" title="${classHashes[char.classHash]} : classe incompatible">
+                                <i class="fa-solid ${icon}"></i>
+                            </button>`;
+                    }
+                });
 
-                    weaponCardsHTML += `
-                        <div class="item-card bg-destiny-card border border-destiny-border hover:border-gray-500 rounded-xl p-4 flex flex-col justify-between">
-                            <div class="flex gap-4 mb-4">
-                                <img src="https://www.bungie.net${def.displayProperties.icon}" class="w-14 h-14 rounded bg-black border-2 ${isExotic ? 'border-destiny-exotic' : 'border-gray-600'}">
-                                <div class="overflow-hidden">
-                                    <p class="text-white font-bold text-sm leading-tight truncate" title="${def.displayProperties.name}">${def.displayProperties.name}</p>
-                                    <p class="text-[10px] text-gray-400 mt-1 uppercase font-bold tracking-wider truncate">${def.itemTypeDisplayName}</p>
+                const powerBadge = power
+                    ? `<span class="text-yellow-400 font-bold text-xs flex items-center gap-1 shrink-0"><i class="fa-solid fa-bolt"></i>${power}</span>`
+                    : '';
+                const catBadge = isWeapon
+                    ? '<i class="fa-solid fa-gun text-[10px] text-gray-500" title="Arme"></i>'
+                    : '<i class="fa-solid fa-shield-halved text-[10px] text-gray-500" title="Armure"></i>';
+
+                cardsHTML += `
+                    <div class="item-card bg-destiny-card border border-destiny-border hover:border-gray-500 rounded-xl p-4 flex flex-col justify-between" data-cat="${cat}">
+                        <div class="flex gap-4 mb-4">
+                            <img src="https://www.bungie.net${def.displayProperties.icon}" class="w-14 h-14 rounded bg-black border-2 ${tierBorder(def)} shrink-0">
+                            <div class="overflow-hidden flex-1">
+                                <div class="flex items-center justify-between gap-2">
+                                    <p class="text-white font-bold text-sm leading-tight truncate ${isExotic ? 'text-destiny-exotic' : ''}" title="${def.displayProperties.name}">${def.displayProperties.name}</p>
+                                    ${powerBadge}
                                 </div>
+                                <p class="text-[10px] text-gray-400 mt-1 uppercase font-bold tracking-wider truncate flex items-center gap-1.5">${catBadge} ${def.itemTypeDisplayName}</p>
                             </div>
-                            <div class="flex gap-1.5 mt-auto bg-black/20 p-1.5 rounded-lg">${transferButtons}</div>
-                        </div>`;
-                }
+                        </div>
+                        <div class="flex gap-1.5 mt-auto bg-black/20 p-1.5 rounded-lg">${transferButtons}</div>
+                    </div>`;
             }
 
             loader.classList.add('hidden'); loader.classList.remove('flex');
 
             const badge = document.getElementById('vault-count-badge');
-            badge.textContent = `${weaponCount} Armes`;
+            badge.textContent = `${counts.all} Objets`;
             badge.classList.remove('hidden');
 
-            if (weaponCount === 0) {
-                container.innerHTML = `<div class="col-span-full text-center py-20 text-gray-500 bg-black/20 rounded-2xl border border-dashed border-gray-700"><i class="fa-solid fa-box-open text-5xl mb-4 opacity-50"></i><br><p class="font-mono text-sm">Le terminal ne détecte aucune arme tactique.</p></div>`;
+            // Mise à jour des compteurs de la barre de filtre
+            document.querySelectorAll('#vault-filter-bar [data-count]').forEach(el => {
+                el.textContent = counts[el.dataset.count] || 0;
+            });
+            const filterBar = document.getElementById('vault-filter-bar');
+            filterBar.classList.remove('hidden'); filterBar.classList.add('flex');
+
+            if (counts.all === 0) {
+                container.innerHTML = `<div class="col-span-full text-center py-20 text-gray-500 bg-black/20 rounded-2xl border border-dashed border-gray-700"><i class="fa-solid fa-box-open text-5xl mb-4 opacity-50"></i><br><p class="font-mono text-sm">Le terminal ne détecte aucune arme ni armure.</p></div>`;
             } else {
-                container.innerHTML = weaponCardsHTML;
+                container.innerHTML = cardsHTML;
                 vaultLoaded = true;
+                applyVaultFilter();
             }
+        }
+
+        function setVaultFilter(filter, btn) {
+            vaultFilter = filter;
+            document.querySelectorAll('.vault-filter-btn').forEach(b => {
+                b.classList.remove('bg-accent', 'text-black');
+                b.classList.add('text-gray-400');
+            });
+            btn.classList.remove('text-gray-400');
+            btn.classList.add('bg-accent', 'text-black');
+            applyVaultFilter();
+        }
+
+        function applyVaultFilter() {
+            document.querySelectorAll('#vault-container .item-card').forEach(card => {
+                card.style.display = (vaultFilter === 'all' || card.dataset.cat === vaultFilter) ? '' : 'none';
+            });
         }
 
         async function actionEquip(btn, itemInstanceId, characterId) {
@@ -835,7 +1039,7 @@
 
         async function refreshDataSilently(charIdToReopen = null) {
             try {
-                const profileRes = await fetchAPI(`/Destiny2/${membershipType}/Profile/${destinyMembershipId}/?components=100,102,200,201,205`);
+                const profileRes = await fetchAPI(`/Destiny2/${membershipType}/Profile/${destinyMembershipId}/?components=100,102,200,201,205,300`);
                 globalProfileData = profileRes.Response;
                 if (charIdToReopen) {
                     const className = classHashes[globalProfileData.characters.data[charIdToReopen].classHash];
@@ -854,6 +1058,44 @@
             return `${Math.floor(totalSec / 60)}m ${(totalSec % 60).toString().padStart(2, '0')}s`;
         }
 
+        // Normalise un nom de raid pour fusionner ses variantes de difficulté.
+        function normalizeRaidName(name) {
+            return (name || '')
+                .replace(/\s*:\s*(Master|Maître|Prestige|Legend|Légende|Normal|Héroïque|Heroic)\b.*$/i, '')
+                .replace(/\s*\((Master|Maître|Prestige|Legend|Légende)\)\s*$/i, '')
+                .trim();
+        }
+
+        // Charge le catalogue COMPLET des incursions depuis la table du Manifeste (1 fois / session).
+        async function loadRaidCatalog() {
+            if (raidCatalog) return raidCatalog;
+            const manifest = await fetchAPI('/Destiny2/Manifest/', 'GET', null, true);
+            const paths = manifest?.Response?.jsonWorldComponentContentPaths;
+            if (!paths) throw new Error("Chemins du Manifeste indisponibles");
+            const lang = paths.fr ? 'fr' : (paths.en ? 'en' : Object.keys(paths)[0]);
+            const tablePath = paths[lang]?.DestinyActivityDefinition;
+            if (!tablePath) throw new Error("Table des activités introuvable");
+
+            const res = await fetch(`https://www.bungie.net${tablePath}`, { headers: { 'X-API-Key': API_KEY } });
+            const table = await res.json();
+
+            const catalog = {};      // nom normalisé -> { name, image, hashes:Set }
+            const hashToRaid = {};   // activityHash -> nom normalisé
+            for (const hash in table) {
+                const def = table[hash];
+                if (def?.activityModeTypes?.includes(4)) {   // mode 4 = Incursion
+                    const name = normalizeRaidName(def.originalDisplayProperties?.name || def.displayProperties?.name);
+                    if (!name) continue;
+                    if (!catalog[name]) catalog[name] = { name, image: def.pgcrImage || null, hashes: new Set() };
+                    catalog[name].hashes.add(Number(hash));
+                    if (!catalog[name].image && def.pgcrImage) catalog[name].image = def.pgcrImage;
+                    hashToRaid[hash] = name;
+                }
+            }
+            raidCatalog = { catalog, hashToRaid };
+            return raidCatalog;
+        }
+
         async function buildRaidHubData() {
             const loader = document.getElementById('raidhub-loader');
             const content = document.getElementById('raidhub-content');
@@ -861,85 +1103,128 @@
             content.classList.add('hidden');
 
             try {
+                // ---- Synthèse globale des incursions ----
                 const statsRes = await fetchAPI(`/Destiny2/${membershipType}/Account/${destinyMembershipId}/Stats/?groups=1,2`);
-                const raidStats = statsRes?.Response?.mergedAllCharacters?.results?.raid?.allTime || {};
-                const hrs = Math.floor((raidStats.secondsPlayed?.basic?.value || 0) / 3600);
+                const raid = statsRes?.Response?.mergedAllCharacters?.results?.raid?.allTime || {};
+                const hrs = Math.floor((raid.secondsPlayed?.basic?.value || 0) / 3600);
 
-                const createOverallCard = (title, val, desc) => `
+                const card = (title, val, desc) => `
                     <div class="bg-destiny-card border border-destiny-border p-6 rounded-2xl">
                         <p class="text-accent text-[10px] uppercase font-bold tracking-widest font-mono mb-1">${title}</p>
-                        <h4 class="text-4xl font-black text-white tracking-tight">${val || '0'}</h4>
+                        <h4 class="text-4xl font-black text-white tracking-tight">${val ?? '0'}</h4>
                         <p class="text-xs text-gray-500 mt-2">${desc}</p>
                     </div>`;
 
                 document.getElementById('raid-overall-stats').innerHTML = `
-                    ${createOverallCard("Temps Global", `${hrs}h`, "Heures passées dans des activités de type Incursion.")}
-                    ${createOverallCard("Complétions Totales", raidStats.activitiesCleared?.basic?.displayValue || 0, "Nombre d'incursions menées à terme avec succès.")}
-                    ${createOverallCard("Efficacité (K/D)", raidStats.killsDeathsRatio?.basic?.displayValue || "0.0", "Ratio d'éliminations contre pertes en raid.")}`;
+                    ${card("Temps en Incursion", `${hrs}h`, "Heures passées dans des activités de type Incursion.")}
+                    ${card("Complétions", raid.activitiesCleared?.basic?.displayValue || 0, "Incursions menées à terme avec succès.")}
+                    ${card("Lancements", raid.activitiesEntered?.basic?.displayValue || 0, "Nombre total d'incursions démarrées.")}
+                    ${card("Éliminations", raid.kills?.basic?.displayValue || 0, "Ennemis vaincus en incursion.")}
+                    ${card("Morts", raid.deaths?.basic?.displayValue || 0, "Nombre de fois où vos Gardiens sont tombés.")}
+                    ${card("Efficacité (K/D)", raid.killsDeathsRatio?.basic?.displayValue || "0.0", "Ratio d'éliminations contre pertes.")}`;
 
-                // Stats agrégées par personnage -> raids spécifiques
+                // ---- Stats agrégées par personnage, cumulées par hash d'activité ----
                 const chars = globalProfileData.characters.data;
                 const aggregateResults = await Promise.all(
                     Object.keys(chars).map(charId =>
                         fetchAPI(`/Destiny2/${membershipType}/Account/${destinyMembershipId}/Character/${charId}/Stats/AggregateActivityStats/`))
                 );
 
-                const uniqueActivityHashes = new Set();
+                const playerByHash = {};
                 aggregateResults.forEach(res => {
                     res?.Response?.activities?.forEach(act => {
-                        if (act.values.activityCompletions?.basic?.value > 0) uniqueActivityHashes.add(act.activityHash);
+                        const h = act.activityHash, v = act.values;
+                        if (!playerByHash[h]) playerByHash[h] = { completions: 0, kills: 0, deaths: 0, assists: 0, seconds: 0, fastest: Infinity };
+                        const acc = playerByHash[h];
+                        acc.completions += v.activityCompletions?.basic?.value || 0;
+                        acc.kills += v.activityKills?.basic?.value || 0;
+                        acc.deaths += v.activityDeaths?.basic?.value || 0;
+                        acc.assists += v.activityAssists?.basic?.value || 0;
+                        acc.seconds += v.activitySecondsPlayed?.basic?.value || 0;
+                        const f = v.fastestCompletionMsForActivity?.basic?.value || 0;
+                        if (f > 0 && f < acc.fastest) acc.fastest = f;
                     });
                 });
 
-                const hashesArray = Array.from(uniqueActivityHashes);
-                for (let i = 0; i < hashesArray.length; i += 15) {
-                    await Promise.all(hashesArray.slice(i, i + 15).map(h => getManifestDef('DestinyActivityDefinition', h)));
+                // ---- Liste des raids : TOUS ceux du jeu si le catalogue se charge, sinon repli ----
+                let raidList = [];
+                let allRaidsMode = false;
+                try {
+                    const { catalog } = await loadRaidCatalog();
+                    allRaidsMode = true;
+                    raidList = Object.values(catalog).map(r => {
+                        const t = { completions: 0, kills: 0, deaths: 0, assists: 0, seconds: 0, fastest: Infinity };
+                        r.hashes.forEach(h => {
+                            const p = playerByHash[h];
+                            if (!p) return;
+                            t.completions += p.completions; t.kills += p.kills; t.deaths += p.deaths;
+                            t.assists += p.assists; t.seconds += p.seconds;
+                            if (p.fastest < t.fastest) t.fastest = p.fastest;
+                        });
+                        return { name: r.name, image: r.image, ...t };
+                    });
+                } catch (e) {
+                    // Repli : uniquement les raids effectivement joués (lookups individuels du Manifeste).
+                    const played = Object.keys(playerByHash).filter(h => playerByHash[h].completions > 0 || playerByHash[h].kills > 0);
+                    for (let i = 0; i < played.length; i += 20) {
+                        await Promise.all(played.slice(i, i + 20).map(h => getManifestDef('DestinyActivityDefinition', h)));
+                    }
+                    const byName = {};
+                    played.forEach(h => {
+                        const def = manifestCache[`DestinyActivityDefinition_${h}`];
+                        if (!def?.activityModeTypes?.includes(4)) return;
+                        const name = normalizeRaidName(def.originalDisplayProperties?.name || def.displayProperties.name);
+                        const p = playerByHash[h];
+                        if (!byName[name]) byName[name] = { name, image: def.pgcrImage, completions: 0, kills: 0, deaths: 0, assists: 0, seconds: 0, fastest: Infinity };
+                        byName[name].completions += p.completions; byName[name].kills += p.kills; byName[name].deaths += p.deaths;
+                        byName[name].assists += p.assists; byName[name].seconds += p.seconds;
+                        if (p.fastest < byName[name].fastest) byName[name].fastest = p.fastest;
+                    });
+                    raidList = Object.values(byName);
                 }
 
-                const mergedRaidStats = {};
-                aggregateResults.forEach(res => {
-                    res?.Response?.activities?.forEach(act => {
-                        const clears = act.values.activityCompletions?.basic?.value || 0;
-                        if (clears <= 0) return;
-                        const def = manifestCache[`DestinyActivityDefinition_${act.activityHash}`];
-                        if (def && def.activityModeTypes && def.activityModeTypes.includes(4)) {  // mode 4 = Raid
-                            const name = def.originalDisplayProperties?.name || def.displayProperties.name;
-                            const fastest = act.values.fastestCompletionMsForActivity?.basic?.value || Infinity;
-                            if (!mergedRaidStats[name]) mergedRaidStats[name] = { name, image: def.pgcrImage, completions: 0, fastest: Infinity };
-                            mergedRaidStats[name].completions += clears;
-                            if (fastest > 0 && fastest < mergedRaidStats[name].fastest) mergedRaidStats[name].fastest = fastest;
-                        }
-                    });
-                });
+                // Tri : raids complétés en tête (par complétions), le reste en alphabétique.
+                raidList.sort((a, b) => (b.completions - a.completions) || a.name.localeCompare(b.name));
 
-                const finalRaids = Object.values(mergedRaidStats).sort((a, b) => b.completions - a.completions);
                 const specificContainer = document.getElementById('raid-specific-stats');
-
-                if (finalRaids.length === 0) {
-                    specificContainer.innerHTML = `<div class="col-span-full text-center py-10 text-gray-500 font-mono text-sm">Aucun historique d'incursion détecté sur ce compte.</div>`;
+                if (raidList.length === 0) {
+                    specificContainer.innerHTML = `<div class="col-span-full text-center py-10 text-gray-500 font-mono text-sm">Aucune incursion détectée.</div>`;
                 } else {
-                    specificContainer.innerHTML = finalRaids.map(raid => {
+                    specificContainer.innerHTML = raidList.map(raid => {
                         const bgUrl = raid.image ? `https://www.bungie.net${raid.image}` : 'https://www.bungie.net/img/theme/destiny/bgs/bg_destiny2_1.jpg';
+                        const kd = raid.deaths > 0 ? (raid.kills / raid.deaths).toFixed(2) : (raid.kills || 0).toFixed(2);
+                        const played = raid.completions > 0;
+                        const h = Math.floor(raid.seconds / 3600), m = Math.floor((raid.seconds % 3600) / 60);
+                        const timeStr = raid.seconds > 0 ? (h > 0 ? `${h}h ${m}m` : `${m}m`) : '—';
                         return `
-                            <div class="relative rounded-2xl overflow-hidden shadow-2xl group border border-destiny-border hover:border-accent transition-all duration-300 h-56">
-                                <div class="absolute inset-0 bg-cover bg-center transition-transform duration-700 group-hover:scale-105" style="background-image: url('${bgUrl}');"></div>
-                                <div class="absolute inset-0 bg-gradient-to-t from-[#080b10] via-[#080b10]/60 to-transparent"></div>
-                                <div class="relative z-10 p-5 flex flex-col h-full justify-end">
-                                    <h4 class="text-xl font-display font-bold text-white uppercase tracking-widest mb-4 drop-shadow-lg truncate" title="${raid.name}">${raid.name}</h4>
-                                    <div class="flex justify-between items-end border-t border-white/20 pt-3">
-                                        <div>
-                                            <p class="text-[9px] text-gray-300 uppercase tracking-widest font-bold">Complétions</p>
-                                            <p class="text-2xl font-black text-accent leading-none mt-1">${raid.completions}</p>
-                                        </div>
-                                        <div class="text-right">
-                                            <p class="text-[9px] text-gray-300 uppercase tracking-widest font-bold">Meilleur Temps</p>
-                                            <p class="text-lg font-bold text-white font-mono leading-none mt-1">${formatTime(raid.fastest)}</p>
-                                        </div>
+                            <div class="relative rounded-2xl overflow-hidden shadow-2xl group border border-destiny-border hover:border-accent transition-all duration-300 ${played ? '' : 'opacity-70 hover:opacity-100'}">
+                                <div class="absolute inset-0 bg-cover bg-center transition-transform duration-700 group-hover:scale-105 ${played ? '' : 'grayscale group-hover:grayscale-0'}" style="background-image: url('${bgUrl}');"></div>
+                                <div class="absolute inset-0 bg-gradient-to-t from-[#080b10] via-[#080b10]/75 to-[#080b10]/20"></div>
+                                <div class="relative z-10 p-5 flex flex-col justify-end min-h-[16rem]">
+                                    <div class="mb-auto">
+                                        ${played
+                                            ? '<span class="bg-accent/90 text-black text-[9px] font-bold uppercase tracking-widest px-2 py-1 rounded">Complété</span>'
+                                            : '<span class="bg-black/60 text-gray-300 text-[9px] font-bold uppercase tracking-widest px-2 py-1 rounded border border-white/10">Jamais terminé</span>'}
+                                    </div>
+                                    <h4 class="text-lg font-display font-bold text-white uppercase tracking-widest mb-3 drop-shadow-lg leading-tight" title="${raid.name}">${raid.name}</h4>
+                                    <div class="grid grid-cols-2 gap-x-4 gap-y-2 border-t border-white/20 pt-3">
+                                        <div><p class="text-[9px] text-gray-400 uppercase tracking-widest font-bold">Complétions</p><p class="text-xl font-black text-accent leading-none mt-0.5">${raid.completions}</p></div>
+                                        <div class="text-right"><p class="text-[9px] text-gray-400 uppercase tracking-widest font-bold">Meilleur temps</p><p class="text-base font-bold text-white font-mono leading-none mt-1">${formatTime(raid.fastest)}</p></div>
+                                        <div><p class="text-[9px] text-gray-400 uppercase tracking-widest font-bold">K/D</p><p class="text-sm font-bold text-white leading-none mt-1">${kd}</p></div>
+                                        <div class="text-right"><p class="text-[9px] text-gray-400 uppercase tracking-widest font-bold">Temps joué</p><p class="text-sm font-bold text-white leading-none mt-1">${timeStr}</p></div>
+                                        <div><p class="text-[9px] text-gray-400 uppercase tracking-widest font-bold">Élim.</p><p class="text-sm font-bold text-white leading-none mt-1">${(raid.kills || 0).toLocaleString()}</p></div>
+                                        <div class="text-right"><p class="text-[9px] text-gray-400 uppercase tracking-widest font-bold">Morts</p><p class="text-sm font-bold text-white leading-none mt-1">${(raid.deaths || 0).toLocaleString()}</p></div>
                                     </div>
                                 </div>
                             </div>`;
                     }).join('');
                 }
+
+                // Ajuste le sous-titre selon le mode obtenu
+                const subtitle = document.querySelector('#view-raidhub p.text-destiny-text');
+                if (subtitle) subtitle.textContent = allRaidsMode
+                    ? "Tous les raids du jeu, avec vos statistiques détaillées par incursion."
+                    : "Vos performances sur les incursions jouées (catalogue complet indisponible).";
 
                 raidHubLoaded = true;
                 loader.classList.remove('flex'); loader.classList.add('hidden');
