@@ -59,25 +59,51 @@
 
         .item-card { transition: transform 0.2s, box-shadow 0.2s; }
         .item-card:hover { transform: translateY(-2px); box-shadow: 0 4px 12px rgba(0,0,0,0.5); }
+
+        /* Custom Toast Notifications */
+        #toast-container { position: fixed; bottom: 20px; right: 20px; z-index: 9999; display: flex; flex-direction: column; gap: 10px; }
+        .toast { padding: 16px 20px; border-radius: 8px; font-weight: bold; font-size: 14px; box-shadow: 0 10px 25px rgba(0,0,0,0.5); animation: slideIn 0.3s ease-out; display: flex; items-center; gap: 12px; }
+        .toast.success { background-color: #059669; color: white; }
+        .toast.error { background-color: #DC2626; color: white; }
+        .toast.warning { background-color: #D97706; color: white; }
+        @keyframes slideIn { from { transform: translateX(100%); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
+
+        /* Game Selector */
+        .game-btn { transition: all 0.3s; border: 2px solid transparent; }
+        .game-btn.selected { border-color: #E5A93D; background-color: rgba(229,169,61,0.1); transform: scale(1.05); }
     </style>
 </head>
 <body class="min-h-screen flex flex-col font-sans">
 
     <!-- =========================================================================
-         ÉCRAN DE CONNEXION (OAUTH)
+         ÉCRAN DE CONNEXION (OAUTH & CHOIX DU JEU)
          ========================================================================= -->
     <div id="login-view" class="flex-1 flex flex-col items-center justify-center p-6 text-center bg-[url('https://www.bungie.net/img/theme/destiny/bgs/bg_destiny2_1.jpg')] bg-cover bg-center">
-        <div class="absolute inset-0 bg-destiny-dark/80 backdrop-blur-sm z-0"></div>
-        <div class="bg-destiny-panel/90 p-10 rounded-2xl shadow-2xl max-w-md w-full border border-gray-700 relative z-10">
-            <i class="fa-brands fa-space-awesome text-5xl text-destiny-gold mb-6 drop-shadow-lg"></i>
-            <h1 class="text-3xl font-black mb-2 tracking-tight">Gardiens Hub</h1>
-            <p class="text-destiny-text mb-8 text-sm">Gestion avancée de l'inventaire, du coffre-fort et analyse des performances.</p>
+        <div class="absolute inset-0 bg-destiny-dark/85 backdrop-blur-md z-0"></div>
+        <div class="bg-destiny-panel/90 p-10 rounded-2xl shadow-[0_0_40px_rgba(0,0,0,0.8)] border border-gray-700 relative z-10 max-w-lg w-full">
+            <i class="fa-brands fa-space-awesome text-5xl text-destiny-gold mb-4 drop-shadow-lg"></i>
+            <h1 class="text-3xl font-black mb-2 tracking-tight text-white">Gardiens Hub</h1>
+            <p class="text-destiny-text mb-8 text-sm">Gestionnaire d'inventaire avancé et statistiques.</p>
             
-            <button onclick="loginWithBungie()" class="w-full bg-destiny-gold hover:bg-destiny-goldhover text-black font-bold py-3 px-6 rounded-lg transition-colors flex items-center justify-center gap-3 shadow-[0_0_15px_rgba(229,169,61,0.4)] hover:shadow-[0_0_25px_rgba(229,169,61,0.6)]">
-                <i class="fa-solid fa-link"></i> Autoriser l'accès via Bungie.net
+            <div class="mb-8">
+                <p class="text-xs font-bold text-gray-400 uppercase tracking-widest mb-3">Sélectionnez votre univers</p>
+                <div class="flex gap-4 justify-center">
+                    <button id="btn-d1" onclick="setGame('D1')" class="game-btn flex-1 bg-black/50 hover:bg-black/70 py-4 rounded-xl flex flex-col items-center gap-2 group">
+                        <span class="text-2xl opacity-50 group-hover:opacity-100">🌍</span>
+                        <span class="font-bold text-sm text-gray-300 group-hover:text-white">Destiny 1</span>
+                    </button>
+                    <button id="btn-d2" onclick="setGame('D2')" class="game-btn selected flex-1 bg-black/50 hover:bg-black/70 py-4 rounded-xl flex flex-col items-center gap-2 group">
+                        <span class="text-2xl">🌌</span>
+                        <span class="font-bold text-sm text-white">Destiny 2</span>
+                    </button>
+                </div>
+            </div>
+
+            <button onclick="loginWithBungie()" class="w-full bg-destiny-gold hover:bg-destiny-goldhover text-black font-bold py-4 px-6 rounded-xl transition-all flex items-center justify-center gap-3 shadow-[0_0_15px_rgba(229,169,61,0.4)] hover:shadow-[0_0_25px_rgba(229,169,61,0.6)] text-lg">
+                <i class="fa-solid fa-link"></i> Connexion via Bungie.net
             </button>
             
-            <div id="auth-loading" class="hidden mt-6 flex flex-col items-center gap-3">
+            <div id="auth-loading" class="hidden mt-6 flex flex-col items-center gap-3 bg-black/40 p-4 rounded-xl border border-gray-800">
                 <div class="loader"></div>
                 <p class="text-destiny-gold text-sm font-semibold">Établissement de la liaison sécurisée...</p>
             </div>
@@ -87,95 +113,106 @@
     <!-- =========================================================================
          ÉCRAN PRINCIPAL DE L'APPLICATION
          ========================================================================= -->
-    <div id="app-view" class="flex-1 flex flex-col">
+    <div id="app-view" class="flex-1 flex flex-col relative h-screen overflow-hidden">
         
         <!-- HEADER & NAVIGATION -->
-        <header class="bg-destiny-panel border-b border-gray-800 p-4 sticky top-0 z-40 shadow-lg">
+        <header class="bg-destiny-panel border-b border-gray-800 p-4 shrink-0 shadow-lg z-40 relative">
             <div class="max-w-7xl mx-auto flex flex-col md:flex-row justify-between items-center gap-4">
                 <div class="flex items-center gap-3">
-                    <div class="w-10 h-10 bg-destiny-gold rounded-lg flex items-center justify-center text-black">
+                    <div class="w-10 h-10 bg-gradient-to-br from-destiny-gold to-yellow-600 rounded-lg flex items-center justify-center text-black shadow-lg">
                         <i class="fa-solid fa-ghost text-xl"></i>
                     </div>
                     <div>
                         <h1 class="text-lg font-black tracking-widest uppercase leading-none">Gardiens Hub</h1>
-                        <span class="text-[10px] text-destiny-gold font-bold tracking-widest">API ENGINE V2</span>
+                        <span id="header-game-version" class="text-[10px] text-destiny-gold font-bold tracking-widest">DESTINY 2 ENGINE</span>
                     </div>
                 </div>
                 
-                <nav class="flex gap-1 bg-black/40 p-1.5 rounded-lg overflow-x-auto w-full md:w-auto custom-scrollbar">
-                    <button onclick="switchTab('tab-inventory', this)" class="nav-btn px-4 py-2 rounded-md font-bold text-xs uppercase tracking-wider transition-colors bg-destiny-gold text-black whitespace-nowrap"><i class="fa-solid fa-users mr-2"></i>Escouade</button>
-                    <button onclick="switchTab('tab-vault', this)" class="nav-btn px-4 py-2 rounded-md font-bold text-xs uppercase tracking-wider transition-colors text-gray-400 hover:text-white whitespace-nowrap"><i class="fa-solid fa-box-archive mr-2"></i>Coffre-Fort</button>
-                    <button onclick="switchTab('tab-stats', this)" class="nav-btn px-4 py-2 rounded-md font-bold text-xs uppercase tracking-wider transition-colors text-gray-400 hover:text-white whitespace-nowrap"><i class="fa-solid fa-chart-line mr-2"></i>Rapports</button>
+                <nav class="flex gap-1 bg-black/40 p-1.5 rounded-lg overflow-x-auto w-full md:w-auto custom-scrollbar border border-gray-800">
+                    <button onclick="switchTab('tab-inventory', this)" class="nav-btn px-4 py-2 rounded-md font-bold text-xs uppercase tracking-wider transition-all bg-destiny-gold text-black whitespace-nowrap shadow-sm"><i class="fa-solid fa-users mr-2"></i>Gardiens</button>
+                    <button onclick="switchTab('tab-vault', this)" class="nav-btn px-4 py-2 rounded-md font-bold text-xs uppercase tracking-wider transition-all text-gray-400 hover:text-white whitespace-nowrap"><i class="fa-solid fa-box-archive mr-2"></i>Coffre-Fort</button>
+                    <button onclick="switchTab('tab-stats', this)" class="nav-btn px-4 py-2 rounded-md font-bold text-xs uppercase tracking-wider transition-all text-gray-400 hover:text-white whitespace-nowrap"><i class="fa-solid fa-chart-line mr-2"></i>Rapports</button>
                 </nav>
                 
-                <div class="flex items-center gap-4 bg-black/20 px-4 py-2 rounded-lg border border-gray-800">
+                <div class="flex items-center gap-4 bg-black/20 px-4 py-2 rounded-xl border border-gray-800">
                     <div class="text-right hidden md:block">
-                        <div id="user-bungie-name" class="font-bold text-sm text-white">Synchronisation...</div>
-                        <div class="text-[10px] text-green-400 font-bold uppercase tracking-wider"><i class="fa-solid fa-circle text-[8px] mr-1"></i>En Ligne</div>
+                        <div id="user-bungie-name" class="font-bold text-sm text-white truncate max-w-[150px]">Synchronisation...</div>
+                        <div class="text-[10px] text-emerald-400 font-bold uppercase tracking-wider flex items-center justify-end gap-1"><span class="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span> Réseau Actif</div>
                     </div>
-                    <button onclick="logout()" class="text-gray-500 hover:text-red-500 transition-colors bg-black/50 w-8 h-8 rounded-full flex items-center justify-center" title="Déconnexion">
-                        <i class="fa-solid fa-power-off text-sm"></i>
+                    <button onclick="logout()" class="text-gray-500 hover:text-red-500 transition-colors bg-black/50 hover:bg-black w-8 h-8 rounded-full flex items-center justify-center border border-gray-700" title="Déconnexion totale">
+                        <i class="fa-solid fa-power-off text-xs"></i>
                     </button>
                 </div>
             </div>
         </header>
 
-        <!-- CONTENU PRINCIPAL -->
-        <main class="flex-1 p-4 md:p-8 max-w-7xl mx-auto w-full">
-            
-            <!-- Loader Global -->
-            <div id="main-loader" class="flex flex-col items-center justify-center py-32">
-                <div class="loader mb-6" style="width: 50px; height: 50px; border-width: 4px;"></div>
-                <h2 class="text-2xl font-bold text-white mb-2 tracking-tight">Analyse de la base de données...</h2>
-                <p class="text-destiny-text">Extraction du profil, des inventaires et du coffre-fort.</p>
-            </div>
-
-            <!-- ONGLET 1 : ESCOUADE (INVENTAIRE PERSONNAGES) -->
-            <div id="tab-inventory" class="tab-content">
-                <div class="mb-8 border-b border-gray-800 pb-4">
-                    <h2 class="text-3xl font-black text-white tracking-tight">Vos Gardiens</h2>
-                    <p class="text-destiny-text mt-1 text-sm">Gérez l'équipement actuellement porté et les sacs de vos personnages.</p>
+        <!-- CONTENU PRINCIPAL (Scrollable) -->
+        <main class="flex-1 overflow-y-auto p-4 md:p-8 custom-scrollbar relative">
+            <div class="max-w-7xl mx-auto w-full h-full">
+                
+                <!-- Loader Global -->
+                <div id="main-loader" class="flex flex-col items-center justify-center py-32 h-full">
+                    <div class="loader mb-6" style="width: 60px; height: 60px; border-width: 4px;"></div>
+                    <h2 class="text-2xl font-bold text-white mb-2 tracking-tight">Interrogation des serveurs de l'Avant-Garde...</h2>
+                    <p class="text-destiny-text text-sm">Extraction du profil, des inventaires et des données de combat.</p>
                 </div>
-                <div id="characters-container" class="grid grid-cols-1 lg:grid-cols-3 gap-6"></div>
-            </div>
 
-            <!-- ONGLET 2 : COFFRE-FORT (VAULT) -->
-            <div id="tab-vault" class="tab-content">
-                <div class="mb-8 border-b border-gray-800 pb-4 flex justify-between items-end">
-                    <div>
-                        <h2 class="text-3xl font-black text-white tracking-tight">Le Coffre-Fort</h2>
-                        <p class="text-destiny-text mt-1 text-sm">Aperçu de vos armes stockées. Transférez-les vers vos Gardiens.</p>
+                <!-- ÉCRAN D'ERREUR D1 LEGACY -->
+                <div id="d1-legacy-view" class="hidden flex-col items-center justify-center py-20 text-center">
+                    <i class="fa-solid fa-triangle-exclamation text-6xl text-destiny-gold mb-6 opacity-80"></i>
+                    <h2 class="text-3xl font-black text-white mb-4">Mode Destiny 1 (Legacy)</h2>
+                    <p class="text-gray-400 max-w-lg mb-8">Les serveurs de Destiny 1 utilisent une architecture d'API obsolète (v1) qui n'est plus entièrement supportée par ce moteur. Les transferts et l'inventaire en temps réel sont désactivés pour protéger vos données.</p>
+                    <button onclick="logout()" class="bg-gray-800 hover:bg-gray-700 text-white px-6 py-3 rounded-lg font-bold uppercase tracking-wider text-sm transition-colors border border-gray-600">
+                        Retourner à la sélection du jeu
+                    </button>
+                </div>
+
+                <!-- ONGLET 1 : ESCOUADE (INVENTAIRE PERSONNAGES) -->
+                <div id="tab-inventory" class="tab-content h-full">
+                    <div class="mb-8 border-b border-gray-800 pb-4">
+                        <h2 class="text-3xl font-black text-white tracking-tight">Vos Gardiens</h2>
+                        <p class="text-destiny-text mt-1 text-sm">Gérez l'équipement actuellement porté et les sacs de vos personnages.</p>
                     </div>
-                    <div class="text-right">
-                        <span class="bg-gray-800 text-destiny-gold text-xs font-bold px-3 py-1 rounded-full border border-destiny-gold/30">
-                            Armes Uniquement
-                        </span>
+                    <div id="characters-container" class="grid grid-cols-1 lg:grid-cols-3 gap-6 pb-20"></div>
+                </div>
+
+                <!-- ONGLET 2 : COFFRE-FORT (VAULT) -->
+                <div id="tab-vault" class="tab-content h-full">
+                    <div class="mb-8 border-b border-gray-800 pb-4 flex justify-between items-end">
+                        <div>
+                            <h2 class="text-3xl font-black text-white tracking-tight flex items-center gap-3">
+                                Le Coffre-Fort
+                                <span id="vault-count-badge" class="bg-gray-800 text-destiny-gold text-sm px-3 py-1 rounded-full border border-destiny-gold/30 hidden">0 Armes</span>
+                            </h2>
+                            <p class="text-destiny-text mt-1 text-sm">Aperçu de vos armes stockées. Transférez-les vers vos Gardiens en un clic.</p>
+                        </div>
+                    </div>
+                    
+                    <div id="vault-loader" class="hidden flex-col items-center justify-center py-20 bg-black/30 rounded-2xl border border-gray-800">
+                        <div class="loader mb-4"></div>
+                        <p class="text-sm font-bold text-white mb-1">Décryptage du coffre en cours...</p>
+                        <p id="vault-progress" class="text-xs text-destiny-gold font-mono uppercase tracking-widest">Analyse : 0 / 0</p>
+                    </div>
+                    
+                    <div id="vault-container" class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4 pb-20">
+                        <!-- Armes du coffre injectées ici -->
                     </div>
                 </div>
-                
-                <div id="vault-loader" class="hidden flex-col items-center justify-center py-12">
-                    <div class="loader mb-4"></div><p class="text-sm text-gray-400">Décryptage du coffre en cours...</p>
-                </div>
-                
-                <div id="vault-container" class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
-                    <!-- Armes du coffre injectées ici -->
+
+                <!-- ONGLET 3 : RAPPORTS (STATISTIQUES & RAIDS) -->
+                <div id="tab-stats" class="tab-content h-full">
+                    <div class="mb-8 border-b border-gray-800 pb-4">
+                        <h2 class="text-3xl font-black text-white tracking-tight">Rapports d'Opérations</h2>
+                        <p class="text-destiny-text mt-1 text-sm">Données compilées par l'Avant-Garde sur vos performances historiques.</p>
+                    </div>
+                    
+                    <h3 class="text-sm font-bold text-white mb-4 uppercase tracking-widest text-destiny-gold border-b border-gray-800/50 pb-2 inline-block"><i class="fa-solid fa-globe mr-2"></i>Général</h3>
+                    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-10" id="stats-container"></div>
+
+                    <h3 class="text-sm font-bold text-white mb-4 uppercase tracking-widest text-destiny-gold border-b border-gray-800/50 pb-2 inline-block"><i class="fa-solid fa-dragon mr-2"></i>Performances PvE & Raids</h3>
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-6 pb-20" id="raids-container"></div>
                 </div>
             </div>
-
-            <!-- ONGLET 3 : RAPPORTS (STATISTIQUES & RAIDS) -->
-            <div id="tab-stats" class="tab-content">
-                <div class="mb-8 border-b border-gray-800 pb-4">
-                    <h2 class="text-3xl font-black text-white tracking-tight">Rapports d'Opérations</h2>
-                    <p class="text-destiny-text mt-1 text-sm">Données compilées par l'Avant-Garde sur vos performances historiques.</p>
-                </div>
-                
-                <h3 class="text-lg font-bold text-white mb-4 uppercase tracking-widest text-destiny-gold"><i class="fa-solid fa-globe mr-2"></i>Général</h3>
-                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-10" id="stats-container"></div>
-
-                <h3 class="text-lg font-bold text-white mb-4 uppercase tracking-widest text-destiny-gold"><i class="fa-solid fa-dragon mr-2"></i>Performances PvE & Raids</h3>
-                <div class="grid grid-cols-1 md:grid-cols-3 gap-6" id="raids-container"></div>
-            </div>
-            
         </main>
     </div>
 
@@ -184,54 +221,123 @@
          ========================================================================= -->
     
     <!-- Modal d'Inventaire d'un Gardien -->
-    <div id="inventory-modal" class="fixed inset-0 bg-black/95 z-[100] hidden flex-col items-center justify-center p-2 sm:p-6 backdrop-blur-sm">
-        <div class="bg-destiny-panel border border-gray-700 rounded-2xl shadow-2xl max-w-5xl w-full max-h-[95vh] flex flex-col overflow-hidden">
-            <div class="p-5 border-b border-gray-800 flex justify-between items-center bg-black/40">
-                <div>
+    <div id="inventory-modal" class="fixed inset-0 bg-black/95 z-[100] hidden flex-col items-center justify-center p-2 sm:p-6 backdrop-blur-md transition-opacity">
+        <div class="bg-destiny-panel border border-gray-700 rounded-2xl shadow-[0_20px_50px_rgba(0,0,0,1)] max-w-6xl w-full max-h-[95vh] flex flex-col overflow-hidden">
+            <div class="p-5 border-b border-gray-800 flex justify-between items-center bg-black/60 relative">
+                <div class="absolute top-0 left-0 w-1 h-full bg-destiny-gold"></div>
+                <div class="pl-4">
                     <h2 id="modal-char-name" class="text-2xl font-black text-white uppercase tracking-wider">Arsenal</h2>
-                    <p class="text-xs text-gray-400 mt-1">Équipez des armes ou envoyez-les au coffre.</p>
+                    <p class="text-xs text-gray-400 mt-1">Équipez vos armes tactiques ou envoyez-les en sécurité au coffre.</p>
                 </div>
-                <button onclick="closeModal('inventory-modal')" class="bg-gray-800 hover:bg-red-600 text-gray-300 hover:text-white w-10 h-10 rounded-full transition-colors flex items-center justify-center">
+                <button onclick="closeModal('inventory-modal')" class="bg-gray-800 hover:bg-red-600 text-gray-300 hover:text-white w-10 h-10 rounded-full transition-colors flex items-center justify-center shadow-lg">
                     <i class="fa-solid fa-xmark text-xl"></i>
                 </button>
             </div>
-            <div class="p-6 overflow-y-auto flex-1 custom-scrollbar" id="modal-inventory-content">
-                <!-- Contenu injecté -->
+            <div class="p-6 overflow-y-auto flex-1 custom-scrollbar bg-gradient-to-b from-transparent to-black/30" id="modal-inventory-content">
+                <!-- Contenu injecté dynamiquement -->
             </div>
         </div>
     </div>
 
+    <!-- Conteneur de Notifications -->
+    <div id="toast-container"></div>
+
     <!-- --- LOGIQUE JAVASCRIPT --- -->
     <script>
         // ==========================================
-        // CONFIGURATION & CONSTANTES
+        // CONFIGURATION & ETAT GLOBAL
         // ==========================================
         const API_KEY = '1376a5de5aa94d82819aa9a06d7cb260'; 
         const CLIENT_ID = '52876';
         
         let accessToken = localStorage.getItem('bungie_access_token');
+        let selectedGame = localStorage.getItem('destiny_selected_game') || 'D2';
         let destinyMembershipId = null;
         let membershipType = null;
         let globalProfileData = null; 
+        let vaultLoaded = false;
 
-        // Cache local pour éviter de spammer l'API Bungie pour les icônes et noms
+        // Cache local ultra-rapide
         const manifestCache = {};
 
+        // Hashes Officiels Destiny 2
         const BUCKETS = {
             KINETIC: 1498876634,
             ENERGY: 2465295065,
             POWER: 953998645,
             VAULT: 138197802
         };
-
-        const BUCKET_NAMES = {
-            [BUCKETS.KINETIC]: "Cinétique",
-            [BUCKETS.ENERGY]: "Énergétique",
-            [BUCKETS.POWER]: "Puissante"
-        };
-
+        const BUCKET_NAMES = { [BUCKETS.KINETIC]: "Cinétique", [BUCKETS.ENERGY]: "Énergétique", [BUCKETS.POWER]: "Puissante" };
         const classHashes = { 671679327: 'Chasseur', 3655393761: 'Titan', 2271682572: 'Arcaniste' };
         const raceHashes = { 3887404748: 'Humain', 898687150: 'Exo', 2803282938: 'Éveillé' };
+
+        // ==========================================
+        // UI & NOTIFICATIONS
+        // ==========================================
+        function setGame(game) {
+            selectedGame = game;
+            localStorage.setItem('destiny_selected_game', game);
+            document.getElementById('btn-d1').classList.remove('selected', 'border-destiny-gold', 'bg-destiny-gold/10');
+            document.getElementById('btn-d2').classList.remove('selected', 'border-destiny-gold', 'bg-destiny-gold/10');
+            
+            if(game === 'D1') {
+                document.getElementById('btn-d1').classList.add('selected', 'border-destiny-gold', 'bg-destiny-gold/10');
+            } else {
+                document.getElementById('btn-d2').classList.add('selected', 'border-destiny-gold', 'bg-destiny-gold/10');
+            }
+        }
+
+        function showToast(message, type = 'success') {
+            const container = document.getElementById('toast-container');
+            const toast = document.createElement('div');
+            toast.className = `toast ${type}`;
+            
+            let icon = type === 'success' ? '<i class="fa-solid fa-circle-check"></i>' : 
+                      (type === 'error' ? '<i class="fa-solid fa-triangle-exclamation"></i>' : '<i class="fa-solid fa-circle-info"></i>');
+            
+            toast.innerHTML = `${icon} <span>${message}</span>`;
+            container.appendChild(toast);
+            
+            // Auto-delete after 4 seconds
+            setTimeout(() => {
+                toast.style.opacity = '0';
+                toast.style.transform = 'translateY(20px)';
+                setTimeout(() => toast.remove(), 300);
+            }, 4000);
+        }
+
+        function showApp() {
+            document.getElementById('login-view').style.display = 'none';
+            document.getElementById('app-view').style.display = 'flex';
+            document.getElementById('header-game-version').textContent = selectedGame === 'D1' ? 'DESTINY 1 (LEGACY)' : 'DESTINY 2 ENGINE';
+        }
+
+        function switchTab(tabId, btnElement) {
+            if (selectedGame === 'D1') return; // Bloquer la navigation en D1
+            
+            document.querySelectorAll('.tab-content').forEach(tab => tab.classList.remove('active'));
+            document.querySelectorAll('.nav-btn').forEach(btn => {
+                btn.classList.remove('bg-destiny-gold', 'text-black', 'shadow-sm');
+                btn.classList.add('text-gray-400');
+            });
+            document.getElementById(tabId).classList.add('active');
+            btnElement.classList.remove('text-gray-400');
+            btnElement.classList.add('bg-destiny-gold', 'text-black', 'shadow-sm');
+
+            if (tabId === 'tab-vault' && !vaultLoaded) {
+                renderVault();
+            }
+        }
+
+        function closeModal(id) { 
+            const modal = document.getElementById(id);
+            modal.style.opacity = '0';
+            setTimeout(() => {
+                modal.classList.add('hidden'); 
+                modal.classList.remove('flex'); 
+                modal.style.opacity = '1';
+            }, 200);
+        }
 
         // ==========================================
         // 1. BOOTSTRAP & AUTHENTIFICATION
@@ -240,12 +346,23 @@
             const urlParams = new URLSearchParams(window.location.search);
             const authCode = urlParams.get('code');
 
+            // Initialiser l'UI du sélecteur
+            setGame(selectedGame);
+
             if (authCode) {
                 document.getElementById('auth-loading').classList.remove('hidden');
+                document.querySelectorAll('.game-btn').forEach(b => b.style.pointerEvents = 'none');
                 await exchangeCodeForToken(authCode);
             } else if (accessToken) {
                 showApp();
-                await initDestinyData();
+                if (selectedGame === 'D2') {
+                    await initDestinyData();
+                } else {
+                    document.getElementById('main-loader').style.display = 'none';
+                    document.getElementById('tab-inventory').classList.remove('active');
+                    document.querySelector('.nav-btn').style.display = 'none'; // Cacher la nav
+                    document.getElementById('d1-legacy-view').style.display = 'flex';
+                }
             }
         };
 
@@ -255,7 +372,7 @@
 
         function logout() {
             localStorage.removeItem('bungie_access_token');
-            window.location.href = window.location.pathname;
+            window.location.href = window.location.pathname; // Retire les paramètres URL
         }
 
         async function exchangeCodeForToken(code) {
@@ -270,20 +387,23 @@
                     accessToken = data.access_token;
                     localStorage.setItem('bungie_access_token', accessToken);
                     window.history.replaceState({}, document.title, window.location.pathname);
+                    
                     showApp();
-                    await initDestinyData();
+                    if (selectedGame === 'D2') {
+                        await initDestinyData();
+                    } else {
+                        document.getElementById('main-loader').style.display = 'none';
+                        document.getElementById('d1-legacy-view').style.display = 'flex';
+                    }
                 } else {
-                    throw new Error(data.error_description || "Erreur Auth");
+                    throw new Error(data.error_description || "Rejet de Bungie");
                 }
             } catch (error) {
-                alert("Erreur OAuth. L'application doit être en mode 'Public' sur le portail Bungie.");
-                logout();
+                showToast("Erreur d'authentification. Vérifiez la configuration 'Public' sur le portail Bungie.", 'error');
+                setTimeout(() => logout(), 3000);
             }
         }
 
-        // ==========================================
-        // 2. FETCH DES DONNÉES GLOBALES
-        // ==========================================
         async function fetchAPI(endpoint, method = 'GET', body = null) {
             const options = {
                 method: method,
@@ -294,32 +414,40 @@
                 options.body = JSON.stringify(body);
             }
             const res = await fetch(`https://www.bungie.net/Platform${endpoint}`, options);
+            if(res.status === 401) {
+                showToast("Votre session a expiré.", "warning");
+                setTimeout(logout, 2000);
+                throw new Error("Token expiré");
+            }
             return await res.json();
         }
 
+        // ==========================================
+        // 2. FETCH DES DONNÉES GLOBALES
+        // ==========================================
         async function initDestinyData() {
             try {
-                // 1. Qui est connecté ?
                 const userRes = await fetchAPI('/User/GetMembershipsForCurrentUser/');
-                if (userRes.ErrorCode !== 1) throw new Error("Jeton expiré ou invalide");
+                if (userRes.ErrorCode !== 1) throw new Error("Erreur récupération utilisateur");
 
                 document.getElementById('user-bungie-name').textContent = userRes.Response.bungieNetUser.uniqueName;
                 const destinyProfile = userRes.Response.destinyMemberships[0];
                 destinyMembershipId = destinyProfile.membershipId;
                 membershipType = destinyProfile.membershipType;
 
-                // 2. Le Super-Appel de Profil
-                // 100=Profil, 102=Inventaire (Coffre), 200=Personnages, 201=Sacs Persos, 205=Équipé
+                // 100=Profil, 102=Inventaire (Coffre), 200=Personnages, 201=Sacs, 205=Équipé
                 const profileRes = await fetchAPI(`/Destiny2/${membershipType}/Profile/${destinyMembershipId}/?components=100,102,200,201,205`);
                 globalProfileData = profileRes.Response;
                 
                 renderCharacters(globalProfileData.characters.data);
 
-                // 3. Récupérer les stats en parallèle
+                // Stats asynchrones
                 fetchAPI(`/Destiny2/${membershipType}/Account/${destinyMembershipId}/Stats/?groups=1,2`)
                     .then(statsRes => {
-                        renderStats(statsRes.Response.mergedAllCharacters.results);
-                        renderRaids(statsRes.Response.mergedAllCharacters.results);
+                        if(statsRes.Response) {
+                            renderStats(statsRes.Response.mergedAllCharacters.results);
+                            renderRaids(statsRes.Response.mergedAllCharacters.results);
+                        }
                     });
 
                 document.getElementById('main-loader').style.display = 'none';
@@ -327,12 +455,10 @@
 
             } catch (error) {
                 console.error(error);
-                alert("Session expirée. Veuillez vous reconnecter.");
-                logout();
+                showToast("Erreur de synchronisation réseau.", "error");
             }
         }
 
-        // Système de Cache du Manifest pour les Objets
         async function getItemDef(itemHash) {
             if (manifestCache[itemHash]) return manifestCache[itemHash];
             try {
@@ -342,30 +468,6 @@
                     return res.Response;
                 }
             } catch (e) { return null; }
-        }
-
-        // ==========================================
-        // 3. UI: GESTION DES ONGLETS
-        // ==========================================
-        function showApp() {
-            document.getElementById('login-view').style.display = 'none';
-            document.getElementById('app-view').style.display = 'flex';
-        }
-
-        function switchTab(tabId, btnElement) {
-            document.querySelectorAll('.tab-content').forEach(tab => tab.classList.remove('active'));
-            document.querySelectorAll('.nav-btn').forEach(btn => {
-                btn.classList.remove('bg-destiny-gold', 'text-black');
-                btn.classList.add('text-gray-400');
-            });
-            document.getElementById(tabId).classList.add('active');
-            btnElement.classList.remove('text-gray-400');
-            btnElement.classList.add('bg-destiny-gold', 'text-black');
-
-            // Si on ouvre le coffre, on le charge (lazy loading pour éviter de spam l'API au démarrage)
-            if (tabId === 'tab-vault' && document.getElementById('vault-container').innerHTML.trim() === '') {
-                renderVault();
-            }
         }
 
         // ==========================================
@@ -380,21 +482,21 @@
                 const raceName = raceHashes[char.raceHash] || '';
                 
                 container.innerHTML += `
-                    <div class="character-card rounded-2xl overflow-hidden shadow-[0_8px_30px_rgba(0,0,0,0.5)] h-48 flex flex-col justify-center p-6 border border-gray-700 hover:border-destiny-gold transition-colors group" style="background-image: url('https://www.bungie.net${char.emblemBackgroundPath}');">
+                    <div class="character-card rounded-2xl overflow-hidden shadow-[0_8px_30px_rgba(0,0,0,0.6)] h-56 flex flex-col justify-center p-6 border border-gray-700 hover:border-destiny-gold transition-colors group" style="background-image: url('https://www.bungie.net${char.emblemBackgroundPath}');">
                         <div class="character-content flex justify-between items-start w-full">
                             <div>
                                 <h3 class="text-3xl font-black text-white uppercase tracking-widest drop-shadow-lg">${className}</h3>
-                                <p class="text-gray-300 text-sm font-semibold tracking-wider">${raceName}</p>
+                                <p class="text-gray-300 text-sm font-semibold tracking-wider bg-black/30 px-2 py-0.5 rounded inline-block mt-1 backdrop-blur-sm">${raceName}</p>
                             </div>
-                            <div class="text-right bg-black/40 px-3 py-1 rounded-lg backdrop-blur-sm border border-white/10">
-                                <div class="text-3xl font-bold text-yellow-400 flex items-center gap-1">
-                                    <i class="fa-solid fa-bolt text-xl"></i> ${char.light}
+                            <div class="text-right bg-black/60 px-4 py-2 rounded-xl backdrop-blur-md border border-white/10 shadow-inner">
+                                <div class="text-4xl font-bold text-yellow-400 flex items-center gap-2">
+                                    <i class="fa-solid fa-bolt"></i> ${char.light}
                                 </div>
                             </div>
                         </div>
-                        <div class="mt-auto flex justify-end relative z-10">
-                            <button onclick="openInventoryModal('${char.characterId}', '${className}')" class="bg-destiny-panel hover:bg-destiny-gold hover:text-black text-white border border-gray-600 hover:border-destiny-gold px-5 py-2.5 rounded-lg text-sm font-bold uppercase tracking-wider transition-all shadow-lg flex items-center gap-2">
-                                <i class="fa-solid fa-gun"></i> Gérer l'Arsenal
+                        <div class="mt-auto flex justify-end relative z-10 pt-4">
+                            <button onclick="openInventoryModal('${char.characterId}', '${className}')" class="bg-destiny-panel/90 hover:bg-destiny-gold hover:text-black text-white border border-gray-500 hover:border-destiny-gold px-6 py-3 rounded-xl text-sm font-bold uppercase tracking-wider transition-all shadow-lg flex items-center gap-2 backdrop-blur-sm">
+                                <i class="fa-solid fa-crosshairs"></i> Configurer l'Arsenal
                             </button>
                         </div>
                     </div>
@@ -407,11 +509,11 @@
             const content = document.getElementById('modal-inventory-content');
             modal.classList.remove('hidden'); modal.classList.add('flex');
             document.getElementById('modal-char-name').textContent = `Arsenal : ${className}`;
-            content.innerHTML = '<div class="flex flex-col items-center py-20"><div class="loader mb-4"></div><p>Connexion à l\'inventaire...</p></div>';
+            content.innerHTML = '<div class="flex flex-col items-center justify-center py-32"><div class="loader mb-6" style="width: 50px; height: 50px;"></div><p class="text-lg font-bold">Analyse des flux d\'équipement...</p></div>';
 
             const equipped = globalProfileData.characterEquipment.data[charId].items;
             const bags = globalProfileData.characterInventories.data[charId].items;
-            let html = '<div class="grid grid-cols-1 lg:grid-cols-3 gap-6">';
+            let html = '<div class="grid grid-cols-1 lg:grid-cols-3 gap-8">';
             
             const weaponBuckets = [BUCKETS.KINETIC, BUCKETS.ENERGY, BUCKETS.POWER];
 
@@ -425,41 +527,53 @@
                 const isExotic = eqDef.inventory.tierTypeName === 'Exotic';
                 const borderColor = isExotic ? 'border-destiny-exotic' : 'border-destiny-legendary';
                 const textColor = isExotic ? 'text-destiny-exotic' : 'text-purple-400';
+                const bgGradient = isExotic ? 'from-yellow-900/20 to-black/60' : 'from-purple-900/20 to-black/60';
 
                 html += `
-                <div class="bg-gray-900/50 border border-gray-700 rounded-xl p-4 flex flex-col">
-                    <h3 class="text-gray-400 font-bold mb-3 text-xs uppercase tracking-widest border-b border-gray-800 pb-2">${BUCKET_NAMES[bHash]}</h3>
+                <div class="bg-gray-900/80 border border-gray-700 rounded-2xl p-5 flex flex-col shadow-xl">
+                    <h3 class="text-white font-black mb-4 text-sm uppercase tracking-widest border-b border-gray-700 pb-3 flex items-center gap-2">
+                        <span class="w-2 h-2 rounded-full ${isExotic ? 'bg-destiny-gold' : 'bg-purple-500'}"></span>
+                        ${BUCKET_NAMES[bHash]}
+                    </h3>
                     
                     <!-- ÉQUIPÉ -->
-                    <div class="bg-black/60 p-3 rounded-lg border ${borderColor} flex items-center gap-4 mb-4 shadow-[0_0_15px_rgba(0,0,0,0.5)]">
-                        <img src="https://www.bungie.net${eqDef.displayProperties.icon}" class="w-14 h-14 rounded bg-gray-800 border ${borderColor}">
-                        <div class="flex-1">
-                            <p class="text-white font-bold text-sm leading-tight">${eqDef.displayProperties.name}</p>
-                            <p class="text-[10px] ${textColor} font-bold uppercase mt-1">${eqDef.inventory.tierTypeName}</p>
-                            <span class="text-[9px] bg-green-900 text-green-300 px-2 py-0.5 rounded uppercase mt-1 inline-block font-bold">Équipée</span>
+                    <div class="bg-gradient-to-r ${bgGradient} p-3 rounded-xl border ${borderColor} flex items-center gap-4 mb-5 shadow-[0_4px_20px_rgba(0,0,0,0.4)]">
+                        <div class="relative">
+                            <img src="https://www.bungie.net${eqDef.displayProperties.icon}" class="w-16 h-16 rounded-lg bg-black border-2 ${borderColor}">
+                            <div class="absolute -bottom-2 -right-2 bg-black border ${borderColor} rounded text-[10px] font-bold px-1.5 py-0.5 ${textColor}">Equipé</div>
+                        </div>
+                        <div class="flex-1 overflow-hidden">
+                            <p class="text-white font-bold text-sm leading-tight truncate" title="${eqDef.displayProperties.name}">${eqDef.displayProperties.name}</p>
+                            <p class="text-xs text-gray-400 truncate mt-0.5">${eqDef.itemTypeDisplayName}</p>
                         </div>
                     </div>
                     
-                    <h4 class="text-[10px] text-gray-500 mb-2 uppercase font-bold tracking-wider">Dans le sac</h4>
-                    <div class="space-y-2 overflow-y-auto flex-1 custom-scrollbar pr-2 max-h-64">
+                    <h4 class="text-xs text-gray-400 mb-3 uppercase font-bold tracking-wider flex justify-between"><span>Dans le sac</span> <span class="bg-gray-800 px-2 py-0.5 rounded text-white">${bags.filter(i => i.bucketHash === bHash).length}</span></h4>
+                    <div class="space-y-2.5 overflow-y-auto flex-1 custom-scrollbar pr-2 h-72">
                 `;
 
                 const replacements = bags.filter(i => i.bucketHash === bHash);
-                if(replacements.length === 0) html += `<p class="text-xs text-gray-600 text-center py-2">Sac vide.</p>`;
+                if(replacements.length === 0) html += `<div class="bg-black/40 border border-dashed border-gray-700 rounded-xl p-4 text-center text-sm text-gray-500">Aucune arme en réserve</div>`;
 
                 for (const rep of replacements) {
                     const repDef = await getItemDef(rep.itemHash);
                     if(!repDef) continue;
                     
+                    const isRepExotic = repDef.inventory.tierTypeName === 'Exotic';
+                    const repBorder = isRepExotic ? 'border-destiny-exotic' : 'border-destiny-legendary';
+
                     html += `
-                        <div class="bg-black/40 p-2 rounded-lg border border-gray-800 hover:border-gray-500 transition-colors flex items-center justify-between group">
-                            <div class="flex items-center gap-3">
-                                <img src="https://www.bungie.net${repDef.displayProperties.icon}" class="w-10 h-10 rounded border border-gray-700">
-                                <p class="text-gray-300 text-xs font-bold w-24 truncate" title="${repDef.displayProperties.name}">${repDef.displayProperties.name}</p>
+                        <div class="bg-black/60 p-2.5 rounded-xl border border-gray-800 hover:border-gray-500 transition-all flex items-center justify-between group hover:bg-gray-800/80">
+                            <div class="flex items-center gap-3 overflow-hidden flex-1">
+                                <img src="https://www.bungie.net${repDef.displayProperties.icon}" class="w-10 h-10 rounded-md border ${repBorder}">
+                                <div class="overflow-hidden">
+                                    <p class="text-gray-200 text-xs font-bold truncate group-hover:text-white transition-colors" title="${repDef.displayProperties.name}">${repDef.displayProperties.name}</p>
+                                    <p class="text-[9px] text-gray-500 truncate">${repDef.itemTypeDisplayName}</p>
+                                </div>
                             </div>
-                            <div class="flex flex-col gap-1">
-                                <button onclick="actionEquip(this, '${rep.itemInstanceId}', '${charId}')" class="bg-gray-700 hover:bg-green-600 text-white text-[10px] px-2 py-1 rounded font-bold uppercase transition-colors text-center">Équiper</button>
-                                <button onclick="actionTransfer(this, '${rep.itemHash}', '${rep.itemInstanceId}', '${charId}', true)" class="bg-gray-700 hover:bg-blue-600 text-white text-[10px] px-2 py-1 rounded font-bold uppercase transition-colors text-center" title="Envoyer au coffre">Coffre</button>
+                            <div class="flex gap-1 ml-2 shrink-0">
+                                <button onclick="actionEquip(this, '${rep.itemInstanceId}', '${charId}')" class="bg-gray-700 hover:bg-green-600 text-white text-[10px] w-8 h-8 rounded-lg font-bold transition-colors flex items-center justify-center" title="Équiper"><i class="fa-solid fa-hand-fist"></i></button>
+                                <button onclick="actionTransfer(this, '${rep.itemHash}', '${rep.itemInstanceId}', '${charId}', true)" class="bg-gray-700 hover:bg-blue-600 text-white text-[10px] w-8 h-8 rounded-lg font-bold transition-colors flex items-center justify-center" title="Envoyer au coffre"><i class="fa-solid fa-box-archive"></i></button>
                             </div>
                         </div>
                     `;
@@ -471,54 +585,70 @@
         }
 
         // ==========================================
-        // 5. RENDU: LE COFFRE-FORT (VAULT)
+        // 5. RENDU: LE COFFRE-FORT (VAULT) BATCH OPTIMISÉ
         // ==========================================
         async function renderVault() {
             const container = document.getElementById('vault-container');
             const loader = document.getElementById('vault-loader');
+            const progress = document.getElementById('vault-progress');
+            
+            container.innerHTML = '';
             loader.classList.remove('hidden'); loader.classList.add('flex');
             
-            // Le coffre est dans profileInventory
             const vaultItemsRaw = globalProfileData.profileInventory.data.items.filter(i => i.bucketHash === BUCKETS.VAULT);
             
-            // Pour des raisons de perfs, on ne garde que les armes (on filtre via le manifest)
-            // On va vérifier les hashes pour voir si ce sont des armes
+            // Pour ne pas faire exploser le navigateur, on isole les hashes uniques pour n'appeler l'API qu'une fois par type d'arme
+            const uniqueHashes = [...new Set(vaultItemsRaw.map(i => i.itemHash))];
+            
+            // On fetch les définitions en batch (10 par 10) pour ne pas être rate-limité par Bungie
+            let processedHashes = 0;
+            const BATCH_SIZE = 10;
+            
+            for(let i = 0; i < uniqueHashes.length; i += BATCH_SIZE) {
+                const batch = uniqueHashes.slice(i, i + BATCH_SIZE);
+                // On récupère uniquement ceux qui ne sont pas dans le cache
+                const fetches = batch.filter(h => !manifestCache[h]).map(h => getItemDef(h));
+                if(fetches.length > 0) {
+                    await Promise.all(fetches);
+                    // Petite pause pour respecter les quotas Bungie (Rate limiting)
+                    await new Promise(r => setTimeout(r, 100));
+                }
+                processedHashes += batch.length;
+                progress.textContent = `Analyse des données : ${processedHashes} / ${uniqueHashes.length}`;
+            }
+
+            // Maintenant que le cache a tout, on construit l'UI pour les armes (ItemType 3)
             let weaponCardsHTML = '';
             let weaponCount = 0;
 
-            // On prend les 40 premiers items pour éviter un blocage navigateur
-            const itemsToProcess = vaultItemsRaw.slice(0, 40);
-
-            for(const item of itemsToProcess) {
-                const def = await getItemDef(item.itemHash);
-                if(!def) continue;
-
-                // Vérifier si c'est une arme (itemType 3 = Weapon)
-                if(def.itemType === 3) {
+            for(const item of vaultItemsRaw) {
+                const def = manifestCache[item.itemHash];
+                if(def && def.itemType === 3) {
                     weaponCount++;
                     const isExotic = def.inventory.tierTypeName === 'Exotic';
                     
-                    // Générer les boutons de transfert pour chaque personnage
                     let transferButtons = '';
                     Object.values(globalProfileData.characters.data).forEach(char => {
                         const classIcon = char.classHash === 671679327 ? 'fa-angle-up' : (char.classHash === 3655393761 ? 'fa-shield' : 'fa-book');
                         transferButtons += `
-                            <button onclick="actionTransfer(this, '${item.itemHash}', '${item.itemInstanceId}', '${char.characterId}', false)" class="flex-1 bg-gray-700 hover:bg-destiny-gold hover:text-black py-1.5 rounded text-[10px] font-bold transition-colors" title="Prendre sur ${classHashes[char.classHash]}">
+                            <button onclick="actionTransfer(this, '${item.itemHash}', '${item.itemInstanceId}', '${char.characterId}', false)" class="flex-1 bg-gray-800 hover:bg-destiny-gold hover:text-black py-2 rounded-lg text-sm font-bold transition-all border border-transparent hover:border-destiny-gold shadow-md" title="Prendre sur ${classHashes[char.classHash]}">
                                 <i class="fa-solid ${classIcon}"></i>
                             </button>
                         `;
                     });
 
                     weaponCardsHTML += `
-                        <div class="item-card bg-destiny-panel border border-gray-700 rounded-xl p-3 flex flex-col justify-between">
-                            <div class="flex gap-3 mb-3">
-                                <img src="https://www.bungie.net${def.displayProperties.icon}" class="w-12 h-12 rounded border ${isExotic ? 'border-destiny-exotic' : 'border-destiny-legendary'}">
-                                <div>
-                                    <p class="text-white font-bold text-sm leading-tight">${def.displayProperties.name}</p>
-                                    <p class="text-[10px] text-gray-400 mt-1 uppercase font-bold">${def.itemTypeDisplayName}</p>
+                        <div class="item-card bg-black/50 border border-gray-700 hover:border-gray-500 rounded-2xl p-4 flex flex-col justify-between backdrop-blur-sm">
+                            <div class="flex gap-4 mb-4 items-center">
+                                <div class="relative shrink-0">
+                                    <img src="https://www.bungie.net${def.displayProperties.icon}" class="w-14 h-14 rounded-lg bg-gray-900 border-2 ${isExotic ? 'border-destiny-exotic' : 'border-destiny-legendary'} shadow-lg">
+                                </div>
+                                <div class="overflow-hidden">
+                                    <p class="text-white font-bold text-sm leading-tight truncate" title="${def.displayProperties.name}">${def.displayProperties.name}</p>
+                                    <p class="text-[11px] text-gray-400 mt-1 uppercase font-semibold tracking-wider truncate">${def.itemTypeDisplayName}</p>
                                 </div>
                             </div>
-                            <div class="flex gap-1 mt-auto">
+                            <div class="bg-gray-900/50 p-2 rounded-xl flex gap-2 mt-auto">
                                 ${transferButtons}
                             </div>
                         </div>
@@ -528,10 +658,15 @@
 
             loader.classList.add('hidden'); loader.classList.remove('flex');
             
+            const badge = document.getElementById('vault-count-badge');
+            badge.textContent = `${weaponCount} Armes`;
+            badge.classList.remove('hidden');
+
             if(weaponCount === 0) {
-                container.innerHTML = `<div class="col-span-full text-center py-10 text-gray-500"><i class="fa-solid fa-box-open text-4xl mb-3"></i><br>Aucune arme trouvée dans les premiers emplacements de votre coffre.</div>`;
+                container.innerHTML = `<div class="col-span-full text-center py-20 text-gray-500 bg-black/20 rounded-2xl border border-dashed border-gray-700"><i class="fa-solid fa-box-open text-6xl mb-4 opacity-50"></i><br><p class="text-lg">Aucune arme trouvée dans votre coffre-fort.</p></div>`;
             } else {
                 container.innerHTML = weaponCardsHTML;
+                vaultLoaded = true;
             }
         }
 
@@ -547,12 +682,14 @@
                     itemId: itemInstanceId, characterId: characterId, membershipType: membershipType
                 });
                 if (res.ErrorCode === 1) {
-                    btn.innerHTML = '<i class="fa-solid fa-check"></i>'; btn.classList.replace('bg-gray-700', 'bg-green-500');
+                    btn.innerHTML = '<i class="fa-solid fa-check"></i>'; btn.classList.replace('bg-gray-700', 'bg-green-600');
+                    showToast("Arme équipée avec succès !", "success");
                     setTimeout(() => refreshDataSilently(characterId), 1000);
                 } else throw new Error(res.Message);
             } catch(e) {
-                btn.innerHTML = '<i class="fa-solid fa-xmark"></i>'; btn.classList.replace('bg-gray-700', 'bg-red-500');
-                setTimeout(() => { btn.innerHTML = ogHTML; btn.disabled = false; btn.classList.replace('bg-red-500', 'bg-gray-700'); }, 2000);
+                btn.innerHTML = '<i class="fa-solid fa-xmark"></i>'; btn.classList.replace('bg-gray-700', 'bg-red-600');
+                showToast(e.message, "error");
+                setTimeout(() => { btn.innerHTML = ogHTML; btn.disabled = false; btn.classList.replace('bg-red-600', 'bg-gray-700'); }, 2000);
             }
         }
 
@@ -567,28 +704,36 @@
                 });
                 if (res.ErrorCode === 1) {
                     btn.innerHTML = '<i class="fa-solid fa-check"></i>';
-                    btn.classList.add(toVault ? 'bg-blue-500' : 'bg-green-500');
-                    btn.classList.remove('bg-gray-700');
-                    // On supprime l'élément visuellement si on est dans le coffre
-                    if(!toVault) setTimeout(() => btn.closest('.item-card').remove(), 1000);
-                    // On rafraîchit en arrière plan
+                    btn.classList.add(toVault ? 'bg-blue-600' : 'bg-green-600');
+                    btn.classList.remove('bg-gray-700', 'bg-gray-800');
+                    
+                    showToast(toVault ? "Arme envoyée au coffre." : "Arme récupérée du coffre.", "success");
+
+                    if(!toVault) {
+                        setTimeout(() => btn.closest('.item-card').style.display = 'none', 1000);
+                    }
                     refreshDataSilently(toVault ? characterId : null);
                 } else throw new Error(res.Message);
             } catch(e) {
-                btn.innerHTML = '<i class="fa-solid fa-xmark text-white"></i>'; btn.classList.add('bg-red-500'); btn.classList.remove('bg-gray-700');
-                alert("Transfert impossible: " + e.message);
-                setTimeout(() => { btn.innerHTML = ogHTML; btn.disabled = false; btn.classList.remove('bg-red-500'); btn.classList.add('bg-gray-700'); }, 2000);
+                btn.innerHTML = '<i class="fa-solid fa-xmark text-white"></i>'; btn.classList.add('bg-red-600'); btn.classList.remove('bg-gray-700', 'bg-gray-800');
+                showToast("Échec: " + e.message, "error");
+                setTimeout(() => { btn.innerHTML = ogHTML; btn.disabled = false; btn.classList.remove('bg-red-600'); btn.classList.add(toVault ? 'bg-gray-700' : 'bg-gray-800'); }, 2000);
             }
         }
 
         async function refreshDataSilently(charIdToReopen = null) {
-            const profileRes = await fetchAPI(`/Destiny2/${membershipType}/Profile/${destinyMembershipId}/?components=100,102,200,201,205`);
-            globalProfileData = profileRes.Response;
-            if(charIdToReopen) {
-                // Rouvrir la modal avec les données fraîches
-                const className = classHashes[globalProfileData.characters.data[charIdToReopen].classHash];
-                openInventoryModal(charIdToReopen, className);
-            }
+            try {
+                const profileRes = await fetchAPI(`/Destiny2/${membershipType}/Profile/${destinyMembershipId}/?components=100,102,200,201,205`);
+                globalProfileData = profileRes.Response;
+                if(charIdToReopen) {
+                    const className = classHashes[globalProfileData.characters.data[charIdToReopen].classHash];
+                    openInventoryModal(charIdToReopen, className);
+                }
+                // Si le coffre est ouvert, on le recharge en silence
+                if (document.getElementById('tab-vault').classList.contains('active')) {
+                    renderVault();
+                }
+            } catch (e) { console.error("Erreur refresh silent", e); }
         }
 
         // ==========================================
@@ -600,13 +745,13 @@
             const pve = statsData.allPvE.allTime;
 
             const createCard = (title, val, icon, color) => `
-                <div class="bg-destiny-panel border border-gray-800 p-5 rounded-xl flex items-center gap-4">
-                    <div class="${color} w-12 h-12 rounded-lg flex items-center justify-center text-xl bg-black/50 shadow-inner">
+                <div class="bg-black/40 border border-gray-800 p-6 rounded-2xl flex items-center gap-5 shadow-lg backdrop-blur-sm">
+                    <div class="${color} w-14 h-14 rounded-xl flex items-center justify-center text-2xl bg-black/60 shadow-inner border border-white/5">
                         <i class="fa-solid ${icon}"></i>
                     </div>
                     <div>
-                        <p class="text-gray-500 text-[10px] uppercase font-bold tracking-widest">${title}</p>
-                        <h4 class="text-2xl font-black text-white">${val || '0'}</h4>
+                        <p class="text-gray-400 text-[11px] uppercase font-bold tracking-widest">${title}</p>
+                        <h4 class="text-3xl font-black text-white mt-1">${val || '0'}</h4>
                     </div>
                 </div>
             `;
@@ -614,10 +759,10 @@
             const hrs = Math.floor(((pvp?.secondsPlayed?.basic?.value||0) + (pve?.secondsPlayed?.basic?.value||0)) / 3600);
             
             container.innerHTML = `
-                ${createCard("Heures de Jeu", `${hrs}h`, "fa-clock", "text-blue-400")}
-                ${createCard("Éliminations (PvP)", pvp?.kills?.basic?.displayValue || 0, "fa-crosshairs", "text-red-500")}
+                ${createCard("Temps Global", `${hrs}h`, "fa-clock", "text-blue-400")}
+                ${createCard("Cibles Éliminées", pvp?.kills?.basic?.displayValue || 0, "fa-crosshairs", "text-red-500")}
                 ${createCard("Ratio K/D (PvP)", pvp?.killsDeathsRatio?.basic?.displayValue || "0.0", "fa-skull", "text-destiny-gold")}
-                ${createCard("Missions PvE", pve?.activitiesCleared?.basic?.displayValue || 0, "fa-dungeon", "text-green-400")}
+                ${createCard("Activités PvE", pve?.activitiesCleared?.basic?.displayValue || 0, "fa-dungeon", "text-emerald-400")}
             `;
         }
 
@@ -626,22 +771,24 @@
             const raidStats = statsData.raid?.allTime || {};
             const bestWpn = statsData.allPvE?.allTime?.weaponBestType?.displayValue || "Inconnue";
 
-            const createCard = (title, val, icon) => `
-                <div class="bg-[url('https://www.bungie.net/img/theme/destiny/bgs/bg_header_black_gradient.jpg')] bg-cover border border-gray-700 p-6 rounded-xl text-center shadow-[0_4px_20px_rgba(0,0,0,0.5)]">
-                    <i class="fa-solid ${icon} text-3xl text-destiny-gold mb-3 opacity-80"></i>
-                    <h4 class="text-gray-400 text-xs uppercase font-bold tracking-widest mb-1">${title}</h4>
-                    <p class="text-3xl font-black text-white">${val || 0}</p>
+            const createCard = (title, val, icon, desc) => `
+                <div class="bg-[url('https://www.bungie.net/img/theme/destiny/bgs/bg_header_black_gradient.jpg')] bg-cover border border-gray-700 hover:border-destiny-gold transition-colors p-8 rounded-2xl text-center shadow-xl relative overflow-hidden group">
+                    <div class="absolute inset-0 bg-black/40 group-hover:bg-transparent transition-colors"></div>
+                    <div class="relative z-10">
+                        <i class="fa-solid ${icon} text-4xl text-destiny-gold mb-4 opacity-80 group-hover:scale-110 transition-transform"></i>
+                        <h4 class="text-gray-300 text-xs uppercase font-bold tracking-widest mb-2">${title}</h4>
+                        <p class="text-4xl font-black text-white mb-2">${val || 0}</p>
+                        <p class="text-[10px] text-gray-500 uppercase">${desc}</p>
+                    </div>
                 </div>
             `;
 
             container.innerHTML = `
-                ${createCard("Raids Complétés", raidStats.activitiesCleared?.basic?.displayValue || 0, "fa-crown")}
-                ${createCard("Alliés Réanimés", raidStats.resurrectionsPerformed?.basic?.displayValue || 0, "fa-hand-holding-medical")}
-                ${createCard("Arme PvE Préférée", bestWpn, "fa-gun")}
+                ${createCard("Incursions Terminées", raidStats.activitiesCleared?.basic?.displayValue || 0, "fa-crown", "Raids validés")}
+                ${createCard("Alliés Réanimés", raidStats.resurrectionsPerformed?.basic?.displayValue || 0, "fa-hand-holding-medical", "Sauvetages tactiques")}
+                ${createCard("Arme de Prédilection", bestWpn, "fa-gun", "Type d'arme favori (PvE)")}
             `;
         }
-
-        function closeModal(id) { document.getElementById(id).classList.add('hidden'); document.getElementById(id).classList.remove('flex'); }
     </script>
 </body>
 </html>
