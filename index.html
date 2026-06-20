@@ -1,0 +1,391 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gardiens Hub - Destiny 2 API</title>
+    <!-- Tailwind CSS pour le design -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- FontAwesome pour les icônes -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <!-- Polices Google -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap" rel="stylesheet">
+    
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: { sans: ['Inter', 'sans-serif'] },
+                    colors: {
+                        destiny: {
+                            dark: '#0B141E',
+                            panel: '#151e2b',
+                            gold: '#E5A93D',
+                            goldhover: '#ffd166',
+                            text: '#8D99AE'
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        body { background-color: #0B141E; color: #F5F5F5; }
+        /* Cacher l'app par défaut, montrer le login */
+        #app-view { display: none; }
+        .tab-content { display: none; }
+        .tab-content.active { display: block; animation: fadeIn 0.3s ease-in-out; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+        
+        /* Style des bannières de personnages */
+        .character-card {
+            background-size: cover;
+            background-position: center;
+            position: relative;
+        }
+        .character-card::before {
+            content: '';
+            position: absolute;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: linear-gradient(to right, rgba(0,0,0,0.9) 0%, rgba(0,0,0,0.4) 100%);
+            z-index: 1;
+        }
+        .character-content { position: relative; z-index: 2; }
+        
+        /* Loader */
+        .loader {
+            border: 4px solid rgba(255, 255, 255, 0.1);
+            border-left-color: #E5A93D;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+        }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+    </style>
+</head>
+<body class="min-h-screen flex flex-col font-sans">
+
+    <!-- ECRAN DE CONNEXION -->
+    <div id="login-view" class="flex-1 flex flex-col items-center justify-center p-6 text-center">
+        <div class="bg-destiny-panel p-10 rounded-2xl shadow-2xl max-w-md w-full border border-gray-800">
+            <i class="fa-brands fa-space-awesome text-6xl text-destiny-gold mb-6"></i>
+            <h1 class="text-3xl font-bold mb-2">Gardiens Hub</h1>
+            <p class="text-destiny-text mb-8">Connectez-vous avec votre compte Bungie pour accéder à votre inventaire et vos statistiques.</p>
+            
+            <button onclick="loginWithBungie()" class="w-full bg-destiny-gold hover:bg-destiny-goldhover text-black font-bold py-3 px-6 rounded-lg transition-colors flex items-center justify-center gap-3">
+                <i class="fa-solid fa-right-to-bracket"></i>
+                Connexion via Bungie.net
+            </button>
+            
+            <div id="auth-error" class="hidden mt-6 bg-red-900/50 border border-red-500 text-red-200 p-4 rounded-lg text-sm text-left">
+                <strong>Erreur :</strong> Impossible de s'authentifier. Vérifiez que votre application Bungie (ID 52876) est bien configurée en "Public" et non "Confidential".
+            </div>
+            <div id="auth-loading" class="hidden mt-6 flex flex-col items-center gap-3">
+                <div class="loader"></div>
+                <p class="text-destiny-gold">Authentification en cours...</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- ECRAN DE L'APPLICATION (Caché au départ) -->
+    <div id="app-view" class="flex-1 flex flex-col">
+        <!-- Header -->
+        <header class="bg-destiny-panel border-b border-gray-800 p-4 sticky top-0 z-50">
+            <div class="max-w-6xl mx-auto flex flex-col md:flex-row justify-between items-center gap-4">
+                <div class="flex items-center gap-3">
+                    <i class="fa-brands fa-space-awesome text-2xl text-destiny-gold"></i>
+                    <h1 class="text-xl font-bold tracking-wider">GARDIENS HUB</h1>
+                </div>
+                
+                <!-- Navigation -->
+                <nav class="flex gap-2 bg-black/30 p-1 rounded-lg">
+                    <button onclick="switchTab('tab-inventory', this)" class="nav-btn px-4 py-2 rounded-md font-semibold text-sm transition-colors bg-destiny-gold text-black">Inventaire</button>
+                    <button onclick="switchTab('tab-stats', this)" class="nav-btn px-4 py-2 rounded-md font-semibold text-sm transition-colors text-gray-400 hover:text-white">Statistiques</button>
+                </nav>
+                
+                <!-- Profil Joueur Menu -->
+                <div class="flex items-center gap-4">
+                    <div class="text-right hidden md:block">
+                        <div id="user-bungie-name" class="font-bold text-sm">Chargement...</div>
+                        <div class="text-xs text-destiny-gold">Connecté</div>
+                    </div>
+                    <button onclick="logout()" class="text-gray-400 hover:text-red-400 transition-colors" title="Déconnexion">
+                        <i class="fa-solid fa-power-off text-xl"></i>
+                    </button>
+                </div>
+            </div>
+        </header>
+
+        <!-- Main Content -->
+        <main class="flex-1 p-6 max-w-6xl mx-auto w-full">
+            
+            <!-- Loader Global -->
+            <div id="main-loader" class="flex flex-col items-center justify-center py-20">
+                <div class="loader mb-4"></div>
+                <p class="text-destiny-text text-lg">Récupération des données depuis les serveurs de l'Avant-Garde...</p>
+            </div>
+
+            <!-- ONGLET : INVENTAIRE (Personnages) -->
+            <div id="tab-inventory" class="tab-content">
+                <div class="flex justify-between items-end mb-6">
+                    <div>
+                        <h2 class="text-2xl font-bold text-white">Vos Gardiens</h2>
+                        <p class="text-destiny-text">Sélectionnez un personnage pour gérer son équipement (Démonstration).</p>
+                    </div>
+                </div>
+                
+                <!-- Grille des personnages -->
+                <div id="characters-container" class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                    <!-- Les personnages seront injectés ici par JavaScript -->
+                </div>
+            </div>
+
+            <!-- ONGLET : STATISTIQUES -->
+            <div id="tab-stats" class="tab-content">
+                <h2 class="text-2xl font-bold text-white mb-2">Statistiques Globales (Compte)</h2>
+                <p class="text-destiny-text mb-8">Vos performances historiques en PvE et PvP.</p>
+                
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4" id="stats-container">
+                    <!-- Les stats seront injectées ici par JavaScript -->
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- --- LOGIQUE JAVASCRIPT --- -->
+    <script>
+        // CONFIGURATION API BUNGIE
+        const API_KEY = '1376a5de5aa94d82819aa9a06d7cb260'; 
+        const CLIENT_ID = '52876';
+        
+        // Variables d'état
+        let accessToken = localStorage.getItem('bungie_access_token');
+        let destinyMembershipId = null;
+        let membershipType = null;
+
+        // Dictionnaire des classes Destiny
+        const classHashes = {
+            671679327: 'Chasseur',
+            3655393761: 'Titan',
+            2271682572: 'Arcaniste'
+        };
+
+        const raceHashes = {
+            3887404748: 'Humain',
+            898687150: 'Exo',
+            2803282938: 'Éveillé'
+        };
+
+        // ==========================================
+        // 1. INITIALISATION & AUTHENTIFICATION
+        // ==========================================
+        window.onload = async () => {
+            const urlParams = new URLSearchParams(window.location.search);
+            const authCode = urlParams.get('code');
+
+            if (authCode) {
+                // Retour depuis Bungie avec un code d'autorisation
+                document.getElementById('auth-loading').classList.remove('hidden');
+                await exchangeCodeForToken(authCode);
+            } else if (accessToken) {
+                // Déjà connecté
+                showApp();
+                await fetchDestinyData();
+            } else {
+                // Pas connecté, on reste sur l'écran de login
+            }
+        };
+
+        function loginWithBungie() {
+            // Redirection vers Bungie pour l'autorisation
+            const authUrl = `https://www.bungie.net/en/OAuth/Authorize?client_id=${CLIENT_ID}&response_type=code`;
+            window.location.href = authUrl;
+        }
+
+        function logout() {
+            localStorage.removeItem('bungie_access_token');
+            window.location.href = window.location.pathname; // Recharge la page sans paramètres
+        }
+
+        async function exchangeCodeForToken(code) {
+            try {
+                const response = await fetch('https://www.bungie.net/Platform/App/OAuth/Token/', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/x-www-form-urlencoded'
+                    },
+                    body: new URLSearchParams({
+                        grant_type: 'authorization_code',
+                        client_id: CLIENT_ID,
+                        code: code
+                        // Pas de client_secret car l'app DOIT être en "Public"
+                    })
+                });
+
+                const data = await response.json();
+
+                if (data.access_token) {
+                    accessToken = data.access_token;
+                    localStorage.setItem('bungie_access_token', accessToken);
+                    // Nettoyer l'URL
+                    window.history.replaceState({}, document.title, window.location.pathname);
+                    showApp();
+                    await fetchDestinyData();
+                } else {
+                    throw new Error(data.error_description || "Erreur d'authentification");
+                }
+            } catch (error) {
+                console.error("Erreur OAuth:", error);
+                document.getElementById('auth-loading').classList.add('hidden');
+                document.getElementById('auth-error').classList.remove('hidden');
+            }
+        }
+
+        // ==========================================
+        // 2. GESTION DE L'INTERFACE
+        // ==========================================
+        function showApp() {
+            document.getElementById('login-view').style.display = 'none';
+            document.getElementById('app-view').style.display = 'flex';
+        }
+
+        function switchTab(tabId, btnElement) {
+            // Masquer les contenus
+            document.querySelectorAll('.tab-content').forEach(tab => tab.classList.remove('active'));
+            // Réinitialiser les boutons
+            document.querySelectorAll('.nav-btn').forEach(btn => {
+                btn.classList.remove('bg-destiny-gold', 'text-black');
+                btn.classList.add('text-gray-400');
+            });
+            // Activer la sélection
+            document.getElementById(tabId).classList.add('active');
+            btnElement.classList.remove('text-gray-400');
+            btnElement.classList.add('bg-destiny-gold', 'text-black');
+        }
+
+        // ==========================================
+        // 3. APPELS API BUNGIE
+        // ==========================================
+        async function fetchAPI(endpoint) {
+            const response = await fetch(`https://www.bungie.net/Platform${endpoint}`, {
+                headers: {
+                    'X-API-Key': API_KEY,
+                    'Authorization': `Bearer ${accessToken}`
+                }
+            });
+            return await response.json();
+        }
+
+        async function fetchDestinyData() {
+            try {
+                // 1. Obtenir l'identité du joueur lié au token
+                const userRes = await fetchAPI('/User/GetMembershipsForCurrentUser/');
+                if (userRes.ErrorCode !== 1) throw new Error(userRes.Message);
+
+                const bungieNetUser = userRes.Response.bungieNetUser;
+                document.getElementById('user-bungie-name').textContent = `${bungieNetUser.uniqueName}`;
+
+                // Trouver le compte Destiny principal (généralement le premier de la liste)
+                const destinyProfile = userRes.Response.destinyMemberships[0];
+                destinyMembershipId = destinyProfile.membershipId;
+                membershipType = destinyProfile.membershipType;
+
+                // 2. Obtenir le Profil (Personnages)
+                // Components: 200 = Personnages de base
+                const profileRes = await fetchAPI(`/Destiny2/${membershipType}/Profile/${destinyMembershipId}/?components=200`);
+                const charactersData = profileRes.Response.characters.data;
+                
+                renderCharacters(charactersData);
+
+                // 3. Obtenir les Statistiques historiques du compte
+                const statsRes = await fetchAPI(`/Destiny2/${membershipType}/Account/${destinyMembershipId}/Stats/`);
+                const statsData = statsRes.Response.mergedAllCharacters.results;
+                
+                renderStats(statsData);
+
+                // Cacher le loader principal et afficher l'onglet inventaire par défaut
+                document.getElementById('main-loader').style.display = 'none';
+                document.getElementById('tab-inventory').classList.add('active');
+
+            } catch (error) {
+                console.error("Erreur lors de la récupération des données :", error);
+                alert("Une erreur est survenue lors du chargement des données. L'API Bungie est peut-être en maintenance ou votre token a expiré. Déconnectez-vous et réessayez.");
+                logout();
+            }
+        }
+
+        // ==========================================
+        // 4. RENDU DES DONNÉES (DOM)
+        // ==========================================
+        function renderCharacters(charactersObj) {
+            const container = document.getElementById('characters-container');
+            container.innerHTML = ''; // Vider le conteneur
+
+            // Parcourir chaque personnage
+            Object.values(charactersObj).forEach(char => {
+                const className = classHashes[char.classHash] || 'Inconnu';
+                const raceName = raceHashes[char.raceHash] || '';
+                const emblemUrl = `https://www.bungie.net${char.emblemBackgroundPath}`;
+                
+                const cardHTML = `
+                    <div class="character-card rounded-xl overflow-hidden shadow-lg h-36 flex flex-col justify-center p-6 border border-gray-700 hover:border-destiny-gold transition-colors cursor-pointer group" style="background-image: url('${emblemUrl}');">
+                        <div class="character-content flex justify-between items-center w-full">
+                            <div>
+                                <h3 class="text-2xl font-bold text-white uppercase tracking-wider group-hover:text-destiny-gold transition-colors">${className}</h3>
+                                <p class="text-gray-300 text-sm">${raceName}</p>
+                            </div>
+                            <div class="text-right">
+                                <div class="text-3xl font-bold text-yellow-400 flex items-center gap-1">
+                                    <i class="fa-solid fa-bolt text-xl"></i> ${char.light}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                `;
+                container.innerHTML += cardHTML;
+            });
+        }
+
+        function renderStats(statsData) {
+            const container = document.getElementById('stats-container');
+            container.innerHTML = ''; // Vider le conteneur
+
+            // Extraire les données PvP et PvE
+            const pvp = statsData.allPvP.allTime;
+            const pve = statsData.allPvE.allTime;
+
+            // Fonction utilitaire pour créer une carte de stat
+            const createStatCard = (title, value, icon, colorClass) => `
+                <div class="bg-destiny-panel border border-gray-800 p-6 rounded-xl flex items-center gap-4">
+                    <div class="${colorClass} w-14 h-14 rounded-full flex items-center justify-center text-2xl bg-black/40">
+                        <i class="fa-solid ${icon}"></i>
+                    </div>
+                    <div>
+                        <p class="text-destiny-text text-sm uppercase tracking-wider">${title}</p>
+                        <h4 class="text-3xl font-bold text-white mt-1">${value || '0'}</h4>
+                    </div>
+                </div>
+            `;
+
+            // Temps de jeu total (Convertir secondes en heures)
+            const playtimeTotalSeconds = (pvp ? pvp.secondsPlayed.basic.value : 0) + (pve ? pve.secondsPlayed.basic.value : 0);
+            const playtimeHours = Math.floor(playtimeTotalSeconds / 3600);
+
+            // Générer les cartes
+            let html = '';
+            html += createStatCard("Temps de jeu total", `${playtimeHours}h`, "fa-clock", "text-blue-400");
+            
+            if (pvp) {
+                html += createStatCard("Éliminations (PvP)", pvp.kills.basic.displayValue, "fa-crosshairs", "text-red-500");
+                html += createStatCard("Ratio K/D (PvP)", pvp.killsDeathsRatio.basic.displayValue, "fa-chart-pie", "text-destiny-gold");
+            }
+            if (pve) {
+                html += createStatCard("Activités PvE", pve.activitiesCleared.basic.displayValue, "fa-dungeon", "text-green-400");
+            }
+
+            container.innerHTML = html;
+        }
+    </script>
+</body>
+</html>
