@@ -888,7 +888,7 @@
 
             // Traitement par lots pour respecter les limites de l'API (le cache absorbe les hits déjà connus).
             let processed = 0;
-            const BATCH_SIZE = 20;
+            const BATCH_SIZE = 200;
             for (let i = 0; i < uniqueHashes.length; i += BATCH_SIZE) {
                 const batch = uniqueHashes.slice(i, i + BATCH_SIZE);
                 await Promise.all(batch.map(h => getManifestDef('DestinyInventoryItemDefinition', h)));
