@@ -1,542 +1,700 @@
 <!DOCTYPE html>
 <html lang="fr" class="h-full">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Gardiens Hub — Destiny 2</title>
-
-    <script src="https://cdn.tailwindcss.com"></script>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Oswald:wght@500;700&display=swap" rel="stylesheet">
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/localforage/1.10.0/localforage.min.js"></script>
-
-    <script>
-        tailwind.config = {
-            theme: {
-                extend: {
-                    fontFamily: { sans: ['Inter', 'sans-serif'], display: ['Oswald', 'sans-serif'], mono: ['ui-monospace', 'monospace'] },
-                    colors: {
-                        accent: { DEFAULT: 'rgb(var(--accent-rgb) / <alpha-value>)', hover: 'rgb(var(--accent-hover-rgb) / <alpha-value>)' },
-                        destiny: { bg: '#080b10', panel: '#111520', card: '#1a1f2e', border: '#2a3441', text: '#9ba1a6', exotic: '#ceae33', legendary: '#522f65', rare: '#366996' }
-                    }
-                }
-            }
-        }
-    </script>
-    <style>
-        :root { --accent-rgb: 212 175 55; --accent-hover-rgb: 241 196 15; }
-        body { background-color: #080b10; color: #f8f9fa; overflow-x: hidden; }
-        .view-panel { display: none; animation: slideUp 0.4s cubic-bezier(0.16, 1, 0.3, 1); }
-        .view-panel.active { display: block; }
-        @keyframes slideUp { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
-        .custom-scroll::-webkit-scrollbar { width: 6px; height: 6px; }
-        .custom-scroll::-webkit-scrollbar-track { background: #080b10; }
-        .custom-scroll::-webkit-scrollbar-thumb { background: #2a3441; border-radius: 4px; }
-        .custom-scroll::-webkit-scrollbar-thumb:hover { background: rgb(var(--accent-rgb)); }
-        .loader-ring { border: 3px solid rgb(var(--accent-rgb) / 0.12); border-top-color: rgb(var(--accent-rgb)); border-radius: 50%; width: 40px; height: 40px; animation: spin 1s linear infinite; }
-        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
-        .glow-accent { box-shadow: 0 0 15px rgb(var(--accent-rgb) / 0.30); }
-        .glow-accent-hover:hover { box-shadow: 0 0 25px rgb(var(--accent-rgb) / 0.60); }
-        .theme-btn { border: 2px solid #2a3441; transition: all 0.25s; }
-        .theme-btn.selected { border-color: rgb(var(--accent-rgb)); background: rgb(var(--accent-rgb) / 0.10); }
-        .theme-btn .check { opacity: 0; transition: opacity 0.2s; }
-        .theme-btn.selected .check { opacity: 1; color: rgb(var(--accent-rgb)); }
-    </style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Gardiens Hub — Destiny 2</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Oswald:wght@500;700&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/localforage/1.10.0/localforage.min.js"></script>
+<script>
+tailwind.config = { theme: { extend: {
+    fontFamily: { sans: ['Inter','sans-serif'], display: ['Oswald','sans-serif'], mono: ['ui-monospace','monospace'] },
+    colors: {
+        accent: { DEFAULT: 'rgb(var(--accent-rgb) / <alpha-value>)', hover: 'rgb(var(--accent-hover-rgb) / <alpha-value>)' },
+        destiny: { bg:'#080b10', panel:'#111520', card:'#1a1f2e', border:'#2a3441', text:'#9ba1a6', exotic:'#ceae33', legendary:'#522f65', rare:'#366996' }
+    }
+}}}
+</script>
+<style>
+:root { --accent-rgb: 212 175 55; --accent-hover-rgb: 241 196 15; }
+body { background:#080b10; color:#f8f9fa; overflow-x:hidden; }
+.view-panel { display:none; animation: slideUp .4s cubic-bezier(.16,1,.3,1); }
+.view-panel.active { display:block; }
+@keyframes slideUp { from{opacity:0;transform:translateY(20px);} to{opacity:1;transform:translateY(0);} }
+.custom-scroll::-webkit-scrollbar { width:6px; height:6px; }
+.custom-scroll::-webkit-scrollbar-track { background:#080b10; }
+.custom-scroll::-webkit-scrollbar-thumb { background:#2a3441; border-radius:4px; }
+.custom-scroll::-webkit-scrollbar-thumb:hover { background: rgb(var(--accent-rgb)); }
+.loader-ring { border:3px solid rgb(var(--accent-rgb)/.12); border-top-color: rgb(var(--accent-rgb)); border-radius:50%; width:40px; height:40px; animation: spin 1s linear infinite; }
+@keyframes spin { to { transform: rotate(360deg); } }
+.glow-accent { box-shadow: 0 0 15px rgb(var(--accent-rgb)/.30); }
+.theme-btn { border:2px solid #2a3441; transition:all .25s; }
+.theme-btn.selected { border-color: rgb(var(--accent-rgb)); background: rgb(var(--accent-rgb)/.10); }
+.theme-btn .check { opacity:0; transition:opacity .2s; }
+.theme-btn.selected .check { opacity:1; color: rgb(var(--accent-rgb)); }
+.toggle { width:46px; height:26px; background:#2a3441; border-radius:99px; position:relative; transition:.25s; cursor:pointer; flex-shrink:0; }
+.toggle.on { background: rgb(var(--accent-rgb)); }
+.toggle::after { content:''; position:absolute; top:3px; left:3px; width:20px; height:20px; background:#fff; border-radius:50%; transition:.25s; }
+.toggle.on::after { left:23px; }
+select { background:#0d1118; }
+</style>
 </head>
 <body class="h-full flex flex-col font-sans antialiased selection:bg-accent selection:text-black">
 
-    <div id="login-view" class="flex-1 flex flex-col items-center justify-center p-6 text-center bg-[url('https://www.bungie.net/img/theme/destiny/bgs/bg_destiny2_1.jpg')] bg-cover bg-center">
-        <div class="absolute inset-0 bg-destiny-bg/85 backdrop-blur-md z-0"></div>
-        <div class="bg-destiny-panel/90 p-10 rounded-2xl shadow-2xl max-w-lg w-full border border-destiny-border relative z-10">
-            <i class="fa-brands fa-space-awesome text-6xl text-accent mb-6"></i>
-            <h1 class="text-4xl font-display font-bold tracking-tight text-white mb-2 uppercase">Gardiens Hub</h1>
-            <p class="text-destiny-text mb-8 text-sm">Gestion avancée de l'inventaire, RaidStat et statistiques pour Destiny&nbsp;2.</p>
-            <button onclick="loginWithBungie()" class="w-full bg-accent hover:bg-accent-hover text-black font-bold py-4 px-6 rounded-xl transition-all flex items-center justify-center gap-3 glow-accent text-lg uppercase tracking-wider font-display">
-                <i class="fa-solid fa-link"></i> Synchroniser via Bungie
-            </button>
-            <div id="auth-loading" class="hidden mt-6 flex flex-col items-center gap-3 bg-black/40 p-4 rounded-xl border border-destiny-border">
-                <div class="loader-ring" style="width: 24px; height: 24px; border-width: 2px;"></div>
-                <p class="text-accent text-xs font-mono uppercase tracking-widest">Liaison sécurisée en cours...</p>
-            </div>
+<!-- CONNEXION -->
+<div id="login-view" class="flex-1 flex flex-col items-center justify-center p-6 text-center bg-[url('https://www.bungie.net/img/theme/destiny/bgs/bg_destiny2_1.jpg')] bg-cover bg-center">
+    <div class="absolute inset-0 bg-destiny-bg/85 backdrop-blur-md z-0"></div>
+    <div class="bg-destiny-panel/90 p-10 rounded-2xl shadow-2xl max-w-lg w-full border border-destiny-border relative z-10">
+        <i class="fa-brands fa-space-awesome text-6xl text-accent mb-6"></i>
+        <h1 class="text-4xl font-display font-bold tracking-tight text-white mb-2 uppercase">Gardiens Hub</h1>
+        <p class="text-destiny-text mb-8 text-sm">Inventaire, coffre-fort, statistiques et incursions pour Destiny&nbsp;2.</p>
+        <button onclick="loginWithBungie()" class="w-full bg-accent hover:bg-accent-hover text-black font-bold py-4 px-6 rounded-xl transition-all flex items-center justify-center gap-3 glow-accent text-lg uppercase tracking-wider font-display"><i class="fa-solid fa-link"></i> Synchroniser via Bungie</button>
+        <div id="auth-loading" class="hidden mt-6 flex-col items-center gap-3 bg-black/40 p-4 rounded-xl border border-destiny-border">
+            <div class="loader-ring" style="width:24px;height:24px;border-width:2px;"></div>
+            <p class="text-accent text-xs font-mono uppercase tracking-widest">Liaison sécurisée...</p>
         </div>
     </div>
+</div>
 
-    <div id="app-view" class="hidden flex-col h-screen overflow-hidden">
-        <header class="bg-destiny-panel border-b border-destiny-border p-4 shrink-0 shadow-lg z-40 relative">
-            <div class="max-w-[1400px] mx-auto flex flex-col md:flex-row justify-between items-center gap-4">
-                <div class="flex items-center gap-3">
-                    <div class="w-10 h-10 bg-gradient-to-br from-accent to-accent-hover rounded-lg flex items-center justify-center text-black shadow-lg">
-                        <i class="fa-solid fa-ghost text-xl"></i>
-                    </div>
-                    <div>
-                        <h1 class="text-xl font-display font-bold tracking-widest uppercase leading-none text-white">Gardiens Hub</h1>
-                        <span class="text-[10px] text-accent font-mono tracking-widest">DESTINY 2 ENGINE</span>
-                    </div>
-                </div>
-
-                <nav class="flex gap-2 bg-black/30 p-1.5 rounded-lg overflow-x-auto w-full md:w-auto custom-scroll border border-destiny-border">
-                    <button onclick="switchTab('view-dashboard', this)" class="nav-btn active px-5 py-2 rounded font-bold text-xs uppercase tracking-wider transition-all bg-accent text-black shadow-sm whitespace-nowrap"><i class="fa-solid fa-chart-pie mr-2"></i>Vue d'ensemble</button>
-                    <button onclick="switchTab('view-inventory', this)" class="nav-btn px-5 py-2 rounded font-bold text-xs uppercase tracking-wider transition-all text-gray-400 hover:text-white hover:bg-white/5 whitespace-nowrap"><i class="fa-solid fa-users mr-2"></i>Escouade</button>
-                    <button onclick="switchTab('view-vault', this)" class="nav-btn px-5 py-2 rounded font-bold text-xs uppercase tracking-wider transition-all text-gray-400 hover:text-white hover:bg-white/5 whitespace-nowrap"><i class="fa-solid fa-box-archive mr-2"></i>Coffre-fort</button>
-                    <button onclick="switchTab('view-raidstat', this)" class="nav-btn px-5 py-2 rounded font-bold text-xs uppercase tracking-wider transition-all text-gray-400 hover:text-white hover:bg-white/5 whitespace-nowrap"><i class="fa-solid fa-dragon mr-2"></i>RaidStat</button>
-                    <button onclick="switchTab('view-settings', this)" class="nav-btn px-5 py-2 rounded font-bold text-xs uppercase tracking-wider transition-all text-gray-400 hover:text-white hover:bg-white/5 whitespace-nowrap"><i class="fa-solid fa-sliders mr-2"></i>Paramètres</button>
-                </nav>
-
-                <div class="flex items-center gap-3 bg-black/40 px-3 py-2 rounded-xl border border-destiny-border">
-                    <img id="user-avatar" alt="Avatar" class="w-10 h-10 rounded-lg border border-destiny-border object-cover bg-destiny-card shrink-0" src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg'/%3E">
-                    <div class="text-right hidden md:block">
-                        <div id="user-bungie-name" class="font-bold text-sm text-white truncate max-w-[150px]">Synchronisation...</div>
-                        <div class="text-[10px] text-emerald-400 font-mono uppercase tracking-wider flex items-center justify-end gap-1"><span class="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse shadow-[0_0_5px_#34d399]"></span> Réseau Actif</div>
-                    </div>
-                    <button onclick="logout()" class="text-gray-500 hover:text-red-500 transition-colors bg-destiny-card hover:bg-destiny-border w-8 h-8 rounded-full flex items-center justify-center border border-destiny-border" title="Déconnexion totale"><i class="fa-solid fa-power-off text-xs"></i></button>
-                </div>
+<!-- APP -->
+<div id="app-view" class="hidden flex-col h-screen overflow-hidden">
+    <header class="bg-destiny-panel border-b border-destiny-border p-4 shrink-0 shadow-lg z-40 relative">
+        <div class="max-w-[1400px] mx-auto flex flex-col md:flex-row justify-between items-center gap-4">
+            <div class="flex items-center gap-3">
+                <div class="w-10 h-10 bg-gradient-to-br from-accent to-accent-hover rounded-lg flex items-center justify-center text-black shadow-lg"><i class="fa-solid fa-ghost text-xl"></i></div>
+                <div><h1 class="text-xl font-display font-bold tracking-widest uppercase leading-none text-white">Gardiens Hub</h1><span class="text-[10px] text-accent font-mono tracking-widest">DESTINY 2</span></div>
             </div>
-        </header>
-
-        <main class="flex-1 overflow-y-auto p-4 md:p-8 custom-scroll relative">
-            <div class="max-w-[1400px] mx-auto w-full h-full">
-
-                <div id="main-loader" class="flex flex-col items-center justify-center py-32 h-full">
-                    <div class="loader-ring mb-6" style="width: 60px; height: 60px; border-width: 3px;"></div>
-                    <h2 class="text-2xl font-display font-bold text-white mb-2 tracking-wide uppercase">Extraction des données...</h2>
-                    <p class="text-destiny-text text-sm font-mono" id="loader-subtext">Interrogation de l'Avant-Garde en cours.</p>
+            <nav class="flex gap-2 bg-black/30 p-1.5 rounded-lg overflow-x-auto w-full md:w-auto custom-scroll border border-destiny-border">
+                <button onclick="switchTab('view-dashboard',this)" class="nav-btn px-5 py-2 rounded font-bold text-xs uppercase tracking-wider bg-accent text-black whitespace-nowrap"><i class="fa-solid fa-chart-pie mr-2"></i>Vue d'ensemble</button>
+                <button onclick="switchTab('view-inventory',this)" class="nav-btn px-5 py-2 rounded font-bold text-xs uppercase tracking-wider text-gray-400 hover:text-white hover:bg-white/5 whitespace-nowrap"><i class="fa-solid fa-users mr-2"></i>Escouade</button>
+                <button onclick="switchTab('view-vault',this)" class="nav-btn px-5 py-2 rounded font-bold text-xs uppercase tracking-wider text-gray-400 hover:text-white hover:bg-white/5 whitespace-nowrap"><i class="fa-solid fa-box-archive mr-2"></i>Coffre-fort</button>
+                <button onclick="switchTab('view-raidstat',this)" class="nav-btn px-5 py-2 rounded font-bold text-xs uppercase tracking-wider text-gray-400 hover:text-white hover:bg-white/5 whitespace-nowrap"><i class="fa-solid fa-dragon mr-2"></i>RaidStat</button>
+                <button onclick="switchTab('view-settings',this)" class="nav-btn px-5 py-2 rounded font-bold text-xs uppercase tracking-wider text-gray-400 hover:text-white hover:bg-white/5 whitespace-nowrap"><i class="fa-solid fa-sliders mr-2"></i>Paramètres</button>
+            </nav>
+            <div class="flex items-center gap-3 bg-black/40 px-3 py-2 rounded-xl border border-destiny-border">
+                <button onclick="syncProfile(null,false,true)" id="refresh-btn" class="text-gray-400 hover:text-accent transition-colors w-8 h-8 rounded-full flex items-center justify-center" title="Rafraîchir"><i class="fa-solid fa-rotate text-sm"></i></button>
+                <img id="user-avatar" alt="" class="w-10 h-10 rounded-lg border border-destiny-border object-cover bg-destiny-card shrink-0" src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg'/%3E">
+                <div class="text-right hidden md:block">
+                    <div id="user-bungie-name" class="font-bold text-sm text-white truncate max-w-[150px]">...</div>
+                    <div class="text-[10px] text-emerald-400 font-mono uppercase tracking-wider flex items-center justify-end gap-1"><span class="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span> Actif</div>
                 </div>
-
-                <div id="view-dashboard" class="view-panel">
-                    <div class="mb-8 border-b border-destiny-border pb-4">
-                        <h2 class="text-3xl font-display font-bold text-white uppercase tracking-wide">Vue d'ensemble</h2>
-                        <p class="text-destiny-text mt-1 text-sm">Données générales de compte issues de l'Épreuve et de l'Avant-Garde.</p>
-                    </div>
-                    <div id="dashboard-stats-container" class="space-y-10"></div>
-                </div>
-
-                <div id="view-inventory" class="view-panel h-full">
-                    <div class="mb-8 border-b border-destiny-border pb-4">
-                        <h2 class="text-3xl font-display font-bold text-white uppercase tracking-wide">L'Escouade</h2>
-                        <p class="text-destiny-text mt-1 text-sm">Gérez l'arsenal et les caractéristiques de vos Gardiens.</p>
-                    </div>
-                    <div id="characters-container" class="grid grid-cols-1 lg:grid-cols-3 gap-8 pb-20"></div>
-                </div>
-
-                <div id="view-vault" class="view-panel h-full">
-                    <div class="mb-8 border-b border-destiny-border pb-4 flex flex-col md:flex-row justify-between items-start md:items-end gap-4">
-                        <div>
-                            <h2 class="text-3xl font-display font-bold text-white uppercase tracking-wide flex items-center gap-3">Le Coffre-Fort <span id="vault-count-badge" class="bg-destiny-card text-accent text-xs font-mono px-3 py-1 rounded-full border border-accent/30 hidden">0 Objets</span></h2>
-                            <p class="text-destiny-text mt-1 text-sm">Transfert tactique de votre armement stocké vers vos Gardiens actifs.</p>
-                        </div>
-                    </div>
-                    <div id="vault-filter-bar" class="hidden flex-wrap gap-2 mb-6 bg-black/30 p-1.5 rounded-xl border border-destiny-border w-fit">
-                        <button data-filter="all" onclick="setVaultFilter('all', this)" class="vault-filter-btn px-4 py-2 rounded-lg text-xs font-bold uppercase tracking-wider bg-accent text-black transition-all"><i class="fa-solid fa-layer-group mr-2"></i>Tout <span class="opacity-70" data-count="all">0</span></button>
-                        <button data-filter="weapon" onclick="setVaultFilter('weapon', this)" class="vault-filter-btn px-4 py-2 rounded-lg text-xs font-bold uppercase tracking-wider text-gray-400 hover:text-white hover:bg-white/5 transition-all"><i class="fa-solid fa-gun mr-2"></i>Armes <span class="opacity-70" data-count="weapon">0</span></button>
-                        <button data-filter="armor" onclick="setVaultFilter('armor', this)" class="vault-filter-btn px-4 py-2 rounded-lg text-xs font-bold uppercase tracking-wider text-gray-400 hover:text-white hover:bg-white/5 transition-all"><i class="fa-solid fa-shield-halved mr-2"></i>Armures <span class="opacity-70" data-count="armor">0</span></button>
-                    </div>
-                    <div id="vault-loader" class="hidden flex-col items-center justify-center py-20 bg-destiny-card/30 rounded-2xl border border-destiny-border">
-                        <div class="loader-ring mb-4"></div><p class="text-sm font-bold text-white mb-1">Décryptage du coffre en cours...</p><p id="vault-progress" class="text-[10px] text-accent font-mono uppercase tracking-widest">Analyse : 0 / 0</p>
-                    </div>
-                    <div id="vault-container" class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-5 pb-20"></div>
-                </div>
-
-                <div id="view-raidstat" class="view-panel h-full">
-                    <div class="mb-8 border-b border-destiny-border pb-4">
-                        <h2 class="text-3xl font-display font-bold text-white uppercase tracking-wide">RaidStat</h2>
-                        <p class="text-destiny-text mt-1 text-sm">Analytique complète de vos incursions et du Panthéon.</p>
-                    </div>
-                    <div id="raidstat-loader" class="hidden flex-col items-center justify-center py-20 bg-destiny-card/30 rounded-2xl border border-destiny-border mb-8">
-                        <div class="loader-ring mb-4"></div><p class="text-sm font-bold text-white mb-1">Compilation des registres de raid...</p>
-                    </div>
-                    <div id="raidstat-content" class="hidden">
-                        <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-10" id="raid-overall-stats"></div>
-                        <h3 class="text-lg font-bold text-white mb-6 uppercase tracking-widest font-display text-accent flex items-center gap-3"><i class="fa-solid fa-skull"></i> Registres par Incursion & Panthéon</h3>
-                        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 pb-20" id="raid-specific-stats"></div>
-                    </div>
-                </div>
-
-                <div id="view-settings" class="view-panel">
-                    <div class="mb-8 border-b border-destiny-border pb-4">
-                        <h2 class="text-3xl font-display font-bold text-white uppercase tracking-wide">Paramètres</h2>
-                    </div>
-                    <div class="bg-destiny-card border border-destiny-border rounded-2xl p-6 mb-6 max-w-3xl">
-                        <h3 class="text-sm font-display font-bold text-white uppercase tracking-widest mb-1 flex items-center gap-2"><i class="fa-solid fa-palette text-accent"></i> Couleur d'accentuation</h3>
-                        <div id="theme-grid" class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3 mt-4"></div>
-                    </div>
-                    <div class="bg-destiny-card border border-destiny-border rounded-2xl p-6 max-w-3xl">
-                        <h3 class="text-sm font-display font-bold text-white uppercase tracking-widest mb-1 flex items-center gap-2"><i class="fa-solid fa-bolt text-accent"></i> Cache IndexedDB</h3>
-                        <div class="flex items-center justify-between gap-4 mt-4 bg-black/30 rounded-xl p-4 border border-destiny-border">
-                            <div><p class="text-white font-bold text-sm">Cache Manifeste</p><p id="cache-info" class="text-[11px] text-gray-500 font-mono mt-0.5">Calcul...</p></div>
-                            <button onclick="clearManifestCache()" class="bg-destiny-border hover:bg-red-900/60 hover:border-red-500 border border-transparent text-gray-300 hover:text-white text-xs font-bold uppercase tracking-wider px-4 py-2.5 rounded-lg transition-colors"><i class="fa-solid fa-trash-can"></i> Purger</button>
-                        </div>
-                    </div>
-                </div>
-
+                <button onclick="logout()" class="text-gray-500 hover:text-red-500 transition-colors bg-destiny-card hover:bg-destiny-border w-8 h-8 rounded-full flex items-center justify-center border border-destiny-border" title="Déconnexion"><i class="fa-solid fa-power-off text-xs"></i></button>
             </div>
-        </main>
-    </div>
-
-    <!-- MODAL INVENTAIRE COMPLET -->
-    <div id="inventory-modal" class="fixed inset-0 bg-black/90 z-[100] hidden flex-col items-center justify-center p-2 sm:p-6 backdrop-blur-md transition-opacity duration-300 opacity-0">
-        <div class="bg-destiny-panel border border-destiny-border rounded-2xl shadow-[0_20px_50px_rgba(0,0,0,1)] max-w-7xl w-full h-[95vh] flex flex-col overflow-hidden transform transition-transform duration-300 scale-95" id="inventory-modal-content-box">
-            <div class="p-5 border-b border-destiny-border flex justify-between items-center bg-destiny-card relative overflow-hidden shrink-0">
-                <div class="absolute top-0 left-0 w-1.5 h-full bg-accent"></div>
-                <div class="pl-4 relative z-10">
-                    <h2 id="modal-char-name" class="text-2xl font-display font-bold text-white uppercase tracking-wider">Arsenal & Équipement</h2>
-                </div>
-                <button onclick="closeModal('inventory-modal')" class="bg-destiny-bg border border-destiny-border hover:bg-red-900/50 hover:border-red-500 text-gray-400 hover:text-white w-10 h-10 rounded-xl transition-all flex items-center justify-center shadow-lg relative z-10"><i class="fa-solid fa-xmark text-lg"></i></button>
-            </div>
-            <div class="p-6 overflow-y-auto flex-1 custom-scroll bg-gradient-to-b from-transparent to-black/50" id="modal-inventory-content"></div>
         </div>
+    </header>
+
+    <main class="flex-1 overflow-y-auto p-4 md:p-8 custom-scroll relative">
+        <div class="max-w-[1400px] mx-auto w-full h-full">
+            <div id="main-loader" class="flex flex-col items-center justify-center py-32 h-full">
+                <div class="loader-ring mb-6" style="width:60px;height:60px;"></div>
+                <h2 class="text-2xl font-display font-bold text-white mb-2 uppercase">Initialisation...</h2>
+                <p class="text-destiny-text text-sm font-mono" id="loader-subtext">Connexion à l'Avant-Garde.</p>
+            </div>
+
+            <div id="view-dashboard" class="view-panel">
+                <div class="mb-8 border-b border-destiny-border pb-4"><h2 class="text-3xl font-display font-bold text-white uppercase">Vue d'ensemble</h2><p class="text-destiny-text mt-1 text-sm">Synthèse de votre compte Gardien.</p></div>
+                <div id="dashboard-container" class="space-y-8"></div>
+            </div>
+
+            <div id="view-inventory" class="view-panel h-full">
+                <div class="mb-8 border-b border-destiny-border pb-4"><h2 class="text-3xl font-display font-bold text-white uppercase">L'Escouade</h2><p class="text-destiny-text mt-1 text-sm">Caractéristiques et équipement de vos Gardiens.</p></div>
+                <div id="characters-container" class="grid grid-cols-1 lg:grid-cols-3 gap-8 pb-20"></div>
+            </div>
+
+            <div id="view-vault" class="view-panel h-full">
+                <div class="mb-6 border-b border-destiny-border pb-4 flex flex-col md:flex-row justify-between items-start md:items-end gap-4">
+                    <div><h2 class="text-3xl font-display font-bold text-white uppercase flex items-center gap-3">Coffre-Fort <span id="vault-count-badge" class="bg-destiny-card text-accent text-xs font-mono px-3 py-1 rounded-full border border-accent/30 hidden">0</span></h2><p class="text-destiny-text mt-1 text-sm">Récupérez vos objets stockés vers un Gardien.</p></div>
+                </div>
+                <div id="vault-filter-bar" class="hidden flex-wrap gap-2 mb-6 bg-black/30 p-1.5 rounded-xl border border-destiny-border w-fit">
+                    <button data-filter="all" onclick="setVaultFilter('all',this)" class="vault-filter-btn px-4 py-2 rounded-lg text-xs font-bold uppercase tracking-wider bg-accent text-black"><i class="fa-solid fa-layer-group mr-2"></i>Tout <span data-count="all">0</span></button>
+                    <button data-filter="weapon" onclick="setVaultFilter('weapon',this)" class="vault-filter-btn px-4 py-2 rounded-lg text-xs font-bold uppercase tracking-wider text-gray-400 hover:text-white hover:bg-white/5"><i class="fa-solid fa-gun mr-2"></i>Armes <span data-count="weapon">0</span></button>
+                    <button data-filter="armor" onclick="setVaultFilter('armor',this)" class="vault-filter-btn px-4 py-2 rounded-lg text-xs font-bold uppercase tracking-wider text-gray-400 hover:text-white hover:bg-white/5"><i class="fa-solid fa-shield-halved mr-2"></i>Armures <span data-count="armor">0</span></button>
+                </div>
+                <div id="vault-loader" class="hidden flex-col items-center justify-center py-20 bg-destiny-card/30 rounded-2xl border border-destiny-border"><div class="loader-ring mb-4"></div><p class="text-sm font-bold text-white">Lecture du coffre...</p></div>
+                <div id="vault-container" class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4 pb-20"></div>
+            </div>
+
+            <div id="view-raidstat" class="view-panel h-full">
+                <div class="mb-8 border-b border-destiny-border pb-4"><h2 class="text-3xl font-display font-bold text-white uppercase">RaidStat</h2><p class="text-destiny-text mt-1 text-sm">Tous les raids du jeu et vos statistiques détaillées.</p></div>
+                <div id="raidstat-loader" class="hidden flex-col items-center justify-center py-20 bg-destiny-card/30 rounded-2xl border border-destiny-border mb-8"><div class="loader-ring mb-4"></div><p class="text-sm font-bold text-white">Compilation des registres...</p></div>
+                <div id="raidstat-content" class="hidden">
+                    <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4 mb-10" id="raid-overall-stats"></div>
+                    <h3 class="text-lg font-bold text-white mb-6 uppercase tracking-widest font-display text-accent flex items-center gap-3"><i class="fa-solid fa-skull"></i> Registres par Incursion</h3>
+                    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 pb-20" id="raid-specific-stats"></div>
+                </div>
+            </div>
+
+            <div id="view-settings" class="view-panel">
+                <div class="mb-8 border-b border-destiny-border pb-4"><h2 class="text-3xl font-display font-bold text-white uppercase">Paramètres</h2></div>
+                <div id="settings-container" class="space-y-6 max-w-3xl"></div>
+            </div>
+        </div>
+    </main>
+</div>
+
+<!-- MODAL -->
+<div id="inventory-modal" class="fixed inset-0 bg-black/90 z-[100] hidden flex-col items-center justify-center p-2 sm:p-6 backdrop-blur-md transition-opacity duration-300 opacity-0">
+    <div class="bg-destiny-panel border border-destiny-border rounded-2xl shadow-2xl max-w-7xl w-full h-[95vh] flex flex-col overflow-hidden transform transition-transform duration-300 scale-95" id="inventory-modal-content-box">
+        <div class="p-5 border-b border-destiny-border flex justify-between items-center bg-destiny-card relative overflow-hidden shrink-0">
+            <div class="absolute top-0 left-0 w-1.5 h-full bg-accent"></div>
+            <h2 id="modal-char-name" class="text-2xl font-display font-bold text-white uppercase tracking-wider pl-4">Équipement</h2>
+            <button onclick="closeModal()" class="bg-destiny-bg border border-destiny-border hover:bg-red-900/50 hover:border-red-500 text-gray-400 hover:text-white w-10 h-10 rounded-xl flex items-center justify-center"><i class="fa-solid fa-xmark text-lg"></i></button>
+        </div>
+        <div class="p-6 overflow-y-auto flex-1 custom-scroll" id="modal-inventory-content"></div>
     </div>
+</div>
 
-    <div id="toast-container" class="fixed bottom-6 right-6 z-[9999] flex flex-col gap-3 pointer-events-none"></div>
+<div id="toast-container" class="fixed bottom-6 right-6 z-[9999] flex flex-col gap-3 pointer-events-none"></div>
 
-    <script>
-        // ==========================================
-        // ROTATION DES CLÉS API (Load Balancing Front-End)
-        // ==========================================
-        const API_APPS = [
-            { key: '1376a5de5aa94d82819aa9a06d7cb260', clientId: '52876' },
-            { key: '1c08673f50a64452916b89c36a2cbf50', clientId: '53127' }
-        ];
-        
-        // Sélectionne aléatoirement une des deux applications pour la session en cours
-        const activeApp = API_APPS[Math.floor(Math.random() * API_APPS.length)];
-        const API_KEY = activeApp.key;
-        const CLIENT_ID = activeApp.clientId;
-        console.log(`Application activée : Client ID ${CLIENT_ID}`);
+<script>
+// =====================================================================
+// CONFIG & ÉTAT
+// =====================================================================
+const API_APPS = [
+    { key:'1376a5de5aa94d82819aa9a06d7cb260', clientId:'52876' },
+    { key:'1c08673f50a64452916b89c36a2cbf50', clientId:'53127' }
+];
+// L'app est "collante" par navigateur : la clé API reste cohérente avec le jeton OAuth émis pour ce client_id.
+let clientId = localStorage.getItem('bungie_client_id');
+if (!clientId) { clientId = API_APPS[Math.floor(Math.random()*API_APPS.length)].clientId; localStorage.setItem('bungie_client_id', clientId); }
+const activeApp = API_APPS.find(a => a.clientId === clientId) || API_APPS[0];
+const API_KEY = activeApp.key, CLIENT_ID = activeApp.clientId;
 
-        let accessToken = localStorage.getItem('bungie_access_token');
-        let destinyMembershipId = null, membershipType = null, globalProfileData = null;
-        let currentTheme = localStorage.getItem('hub_theme') || 'gold';
-        let vaultLoaded = false, raidStatLoaded = false, vaultFilter = 'all', raidCatalog = null;
+let accessToken = localStorage.getItem('bungie_access_token');
+let profile = null;            // données GetProfile (source unique de vérité)
+let memberships = [];          // plateformes disponibles
+let bungieUser = null;
+let vaultLoaded = false, raidLoaded = false, vaultFilter = 'all', raidCatalog = null, modalCharOpen = null, autoTimer = null;
 
-        const manifestCache = {};
-        localforage.config({ name: 'GardiensHub', storeName: 'manifest_data' });
+const DEFAULTS = { membershipId:null, membershipType:null, lang:'fr', theme:'gold', showPower:true, hideNonExotic:false, defaultTab:'view-dashboard', autoRefresh:0 };
+let settings = Object.assign({}, DEFAULTS, JSON.parse(localStorage.getItem('hub_settings') || '{}'));
+const saveSettings = () => localStorage.setItem('hub_settings', JSON.stringify(settings));
 
-        const BUCKETS = { 
-            KINETIC: 1498876634, ENERGY: 2465295065, POWER: 953998645, 
-            HELMET: 3448274439, GAUNTLETS: 3551918588, CHEST: 14239492, LEGS: 20886954, CLASS: 158578782, VAULT: 138197802 
-        };
-        const BUCKET_NAMES = { 
-            [BUCKETS.KINETIC]: "Cinétique", [BUCKETS.ENERGY]: "Énergétique", [BUCKETS.POWER]: "Puissante",
-            [BUCKETS.HELMET]: "Casque", [BUCKETS.GAUNTLETS]: "Gants", [BUCKETS.CHEST]: "Torse", [BUCKETS.LEGS]: "Jambes", [BUCKETS.CLASS]: "Objet de classe"
-        };
-        const EQUIP_ORDER = [BUCKETS.KINETIC, BUCKETS.ENERGY, BUCKETS.POWER, BUCKETS.HELMET, BUCKETS.GAUNTLETS, BUCKETS.CHEST, BUCKETS.LEGS, BUCKETS.CLASS];
+localforage.config({ name:'GardiensHub', storeName:'manifest' });
 
-        const STAT_HASHES = { MOB: 2996146975, RES: 392767087, REC: 1943323491, DIS: 1735777505, INT: 144602215, STR: 4244567218 };
-        
-        const classHashes = { 671679327: 'Chasseur', 3655393761: 'Titan', 2271682572: 'Arcaniste' };
-        const raceHashes = { 3887404748: 'Humain', 898687150: 'Exo', 2803282938: 'Éveillé' };
-        const ITEM_TYPE = { ARMOR: 2, WEAPON: 3 };
+// Hashes officiels
+const BUCKETS = { KINETIC:1498876634, ENERGY:2465295065, POWER:953998645, HELMET:3448274439, GAUNTLETS:3551918588, CHEST:14239492, LEGS:20886954, CLASS:1585787867, VAULT:138197802 };
+const BUCKET_NAMES = { [BUCKETS.KINETIC]:'Cinétique',[BUCKETS.ENERGY]:'Énergie',[BUCKETS.POWER]:'Puissante',[BUCKETS.HELMET]:'Casque',[BUCKETS.GAUNTLETS]:'Gants',[BUCKETS.CHEST]:'Torse',[BUCKETS.LEGS]:'Jambes',[BUCKETS.CLASS]:'Classe' };
+const EQUIP_ORDER = [BUCKETS.KINETIC,BUCKETS.ENERGY,BUCKETS.POWER,BUCKETS.HELMET,BUCKETS.GAUNTLETS,BUCKETS.CHEST,BUCKETS.LEGS,BUCKETS.CLASS];
+const POWER_STAT = 1935470627;
+const classHashes = { 671679327:'Chasseur', 3655393761:'Titan', 2271682572:'Arcaniste' };
+const raceHashes = { 3887404748:'Humain', 898687150:'Exo', 2803282938:'Éveillé' };
+const CLASS_TYPE = { 3655393761:0, 671679327:1, 2271682572:2 };
+const CLASS_ICON = { 3655393761:'fa-shield', 671679327:'fa-crosshairs', 2271682572:'fa-book' };
+const ITEM = { ARMOR:2, WEAPON:3 };
+const THEMES = { gold:{name:'Or',rgb:'212 175 55',hover:'241 196 15'}, blue:{name:'Bleu',rgb:'59 130 246',hover:'96 165 250'}, red:{name:'Rouge',rgb:'239 68 68',hover:'248 113 113'}, green:{name:'Vert',rgb:'16 185 129',hover:'52 211 153'}, purple:{name:'Violet',rgb:'139 92 246',hover:'167 139 250'} };
+const LANGS = { de:'Deutsch', en:'English', es:'Español', 'es-mx':'Español (MX)', fr:'Français', it:'Italiano', ja:'日本語', ko:'한국어', pl:'Polski', 'pt-br':'Português (BR)', ru:'Русский', 'zh-cht':'繁體中文', 'zh-chs':'简体中文' };
+const PLATFORMS = { 1:'Xbox', 2:'PlayStation', 3:'Steam', 4:'Battle.net', 5:'Stadia', 6:'Epic', 10:'Demon', 254:'Bungie.net' };
+const STAT_LABEL = { activitiesCleared:'Activités terminées', activitiesEntered:'Activités lancées', activitiesWon:'Victoires', kills:'Éliminations', deaths:'Morts', assists:'Assistances', killsDeathsRatio:'Ratio K/D', killsDeathsAssists:'Ratio KDA', efficiency:'Efficacité', secondsPlayed:'Temps joué', longestKillSpree:'Plus longue série', bestSingleGameKills:'Meilleures élim. (1 partie)', combatRating:'Cote de combat', suicides:'Suicides', resurrectionsPerformed:'Réa. effectuées', resurrectionsReceived:'Réa. reçues', winLossRatio:'Ratio V/D', precisionKills:'Élim. de précision', score:'Score', weaponBestType:'Meilleure arme' };
+const sleep = ms => new Promise(r => setTimeout(r, ms));
+const statLabel = id => STAT_LABEL[id] || id;
+const fmt = s => s ? (s.basic?.displayValue ?? s.basic?.value ?? '—') : '—';
+const setLoader = t => { const el = document.getElementById('loader-subtext'); if (el) el.textContent = t; };
 
-        const THEMES = { gold: {name:'Or',rgb:'212 175 55',hover:'241 196 15'}, blue: {name:'Bleu',rgb:'59 130 246',hover:'96 165 250'}, red: {name:'Rouge',rgb:'239 68 68',hover:'248 113 113'}, green: {name:'Vert',rgb:'16 185 129',hover:'52 211 153'}, purple: {name:'Violet',rgb:'139 92 246',hover:'167 139 250'} };
-        const sleep = ms => new Promise(r => setTimeout(r, ms));
-
-        function applyTheme(key, save=true) {
-            const t = THEMES[key] || THEMES.gold; document.documentElement.style.setProperty('--accent-rgb', t.rgb); document.documentElement.style.setProperty('--accent-hover-rgb', t.hover); currentTheme = key;
-            if (save) { localStorage.setItem('hub_theme', key); showToast(`Thème « ${t.name} » appliqué.`, 'info'); } updateThemeButtons();
+// =====================================================================
+// MANIFESTE LOCAL (téléchargé 1× par version, mis en cache IndexedDB)
+// =====================================================================
+const Manifest = {
+    items:null, activities:null, stats:null, full:false, partial:{},
+    getItem(h){ return (this.items && this.items[h]) || this.partial['i'+h]; },
+    getStat(h){ return this.stats && this.stats[h]; },
+    async ensure() {
+        const lang = settings.lang;
+        const idx = await fetchAPI('/Destiny2/Manifest/', 'GET', null, true);
+        const version = idx?.Response?.version;
+        const comp = idx?.Response?.jsonWorldComponentContentPaths?.[lang] || idx?.Response?.jsonWorldComponentContentPaths?.en;
+        if (!comp) throw new Error('Manifeste indisponible');
+        const vKey = 'ver_'+lang;
+        if (await localforage.getItem(vKey) === version) {
+            this.items = await localforage.getItem('items_'+lang);
+            this.activities = await localforage.getItem('acts_'+lang);
+            this.stats = await localforage.getItem('stats_'+lang);
+            if (this.items && this.activities && this.stats) { this.full = true; return; }
         }
-        function renderSettings() { document.getElementById('theme-grid').innerHTML = Object.entries(THEMES).map(([k, t]) => `<button onclick="applyTheme('${k}')" data-theme="${k}" class="theme-btn bg-black/40 rounded-xl p-4 flex flex-col items-center gap-2 group"><span class="w-8 h-8 rounded-full border-2 border-white/20" style="background: rgb(${t.rgb})"></span><span class="text-xs font-bold text-gray-300 group-hover:text-white">${t.name}</span><i class="check fa-solid fa-circle-check text-sm"></i></button>`).join(''); updateThemeButtons(); }
-        function updateThemeButtons() { document.querySelectorAll('.theme-btn').forEach(b => b.classList.toggle('selected', b.dataset.theme === currentTheme)); }
-
-        async function initManifestCache() {
-            try {
-                const res = await fetchAPI('/Destiny2/Manifest/', 'GET', null, true); const version = res?.Response?.version; const stored = localStorage.getItem('manifest_version');
-                if (version && version !== stored) { await localforage.removeItem('manifest_cache'); localStorage.setItem('manifest_version', version); } 
-                else { const cached = await localforage.getItem('manifest_cache'); if (cached) Object.assign(manifestCache, cached); }
-            } catch (e) {} updateCacheInfo();
+        setLoader('Téléchargement du Manifeste (' + lang + ') — première fois, patientez...');
+        const [ri, ra, rs] = await Promise.all([
+            fetch('https://www.bungie.net' + comp.DestinyInventoryItemDefinition).then(r=>r.json()),
+            fetch('https://www.bungie.net' + comp.DestinyActivityDefinition).then(r=>r.json()),
+            fetch('https://www.bungie.net' + comp.DestinyStatDefinition).then(r=>r.json())
+        ]);
+        setLoader('Indexation des données...');
+        const items = {};
+        for (const h in ri) { const d = ri[h]; if (!d.displayProperties) continue;
+            items[h] = { n:d.displayProperties.name, ic:d.displayProperties.icon, t:d.itemType, tn:d.itemTypeDisplayName, tr:d.inventory?.tierTypeName, ct:d.classType, st:d.itemSubType }; }
+        const acts = {};
+        for (const h in ra) { const d = ra[h]; const n = d.originalDisplayProperties?.name || d.displayProperties?.name; if (!n) continue;
+            acts[h] = { n, img:d.pgcrImage, m:d.activityModeTypes || [] }; }
+        const stats = {};
+        for (const h in rs) { const d = rs[h]; if (!d.displayProperties?.name) continue; stats[h] = { n:d.displayProperties.name, ic:d.displayProperties.icon }; }
+        this.items = items; this.activities = acts; this.stats = stats; this.full = true;
+        await localforage.setItem('items_'+lang, items);
+        await localforage.setItem('acts_'+lang, acts);
+        await localforage.setItem('stats_'+lang, stats);
+        await localforage.setItem(vKey, version);
+    },
+    // Repli si le téléchargement complet échoue : résolution par hash à la demande.
+    async resolve(hashes) {
+        if (this.full) return;
+        const miss = [...new Set(hashes)].filter(h => h && !this.partial['i'+h]);
+        for (let i=0; i<miss.length; i+=20) {
+            await Promise.all(miss.slice(i,i+20).map(async h => {
+                try { const r = await fetchAPI('/Destiny2/Manifest/DestinyInventoryItemDefinition/'+h+'/','GET',null,true); const d = r?.Response;
+                    if (d?.displayProperties) this.partial['i'+h] = { n:d.displayProperties.name, ic:d.displayProperties.icon, t:d.itemType, tn:d.itemTypeDisplayName, tr:d.inventory?.tierTypeName, ct:d.classType, st:d.itemSubType }; } catch(e){}
+            }));
+            if (i+20 < miss.length) await sleep(300);
         }
-        let persistTimer = null;
-        function persistManifestCache() { clearTimeout(persistTimer); persistTimer = setTimeout(async () => { await localforage.setItem('manifest_cache', manifestCache); updateCacheInfo(); }, 1200); }
-        function updateCacheInfo() { const el = document.getElementById('cache-info'); if (el) el.textContent = `${Object.keys(manifestCache).length} def. IndexedDB`; }
-        async function clearManifestCache() { await localforage.removeItem('manifest_cache'); localStorage.removeItem('manifest_version'); for (let k in manifestCache) delete manifestCache[k]; updateCacheInfo(); showToast("Cache purgé", "info"); }
+    },
+    async clearAll() {
+        const keys = await localforage.keys();
+        for (const k of keys) if (/^(ver|items|acts|stats)_/.test(k)) await localforage.removeItem(k);
+        this.items = this.activities = this.stats = null; this.full = false; this.partial = {};
+    }
+};
 
-        function showToast(msg, type='success') {
-            const c = document.getElementById('toast-container'), t = document.createElement('div'), bg = type==='success'?'bg-emerald-800/90 border-emerald-500':type==='error'?'bg-red-900/90 border-red-500':'bg-blue-900/90 border-blue-500', ic = type==='success'?'fa-circle-check text-emerald-400':type==='error'?'fa-triangle-exclamation text-red-400':'fa-circle-info text-blue-400';
-            t.className = `flex items-center gap-3 px-5 py-4 rounded-xl border backdrop-blur-md shadow-2xl transform transition-all duration-300 translate-y-10 opacity-0 ${bg}`;
-            t.innerHTML = `<i class="fa-solid ${ic} text-xl"></i> <span class="text-white font-semibold text-sm">${msg}</span>`;
-            c.appendChild(t); requestAnimationFrame(() => t.classList.remove('translate-y-10', 'opacity-0')); setTimeout(() => { t.classList.add('translate-y-10', 'opacity-0'); setTimeout(() => t.remove(), 300); }, 4000);
+// =====================================================================
+// THÈME & TOASTS
+// =====================================================================
+function applyTheme(key, save=true) {
+    const t = THEMES[key] || THEMES.gold;
+    document.documentElement.style.setProperty('--accent-rgb', t.rgb);
+    document.documentElement.style.setProperty('--accent-hover-rgb', t.hover);
+    settings.theme = key;
+    if (save) { saveSettings(); showToast('Thème « ' + t.name + ' » appliqué', 'info'); renderSettings(); }
+}
+function showToast(msg, type='success') {
+    const c = document.getElementById('toast-container'), t = document.createElement('div');
+    const bg = type==='success'?'bg-emerald-800/90 border-emerald-500':type==='error'?'bg-red-900/90 border-red-500':'bg-blue-900/90 border-blue-500';
+    const ic = type==='success'?'fa-circle-check text-emerald-400':type==='error'?'fa-triangle-exclamation text-red-400':'fa-circle-info text-blue-400';
+    t.className = 'flex items-center gap-3 px-5 py-4 rounded-xl border backdrop-blur-md shadow-2xl transition-all duration-300 translate-y-10 opacity-0 ' + bg;
+    t.innerHTML = '<i class="fa-solid '+ic+' text-xl"></i> <span class="text-white font-semibold text-sm">'+msg+'</span>';
+    c.appendChild(t); requestAnimationFrame(()=>t.classList.remove('translate-y-10','opacity-0'));
+    setTimeout(()=>{ t.classList.add('translate-y-10','opacity-0'); setTimeout(()=>t.remove(),300); }, 4000);
+}
+
+// =====================================================================
+// AUTH & BOOTSTRAP
+// =====================================================================
+window.onload = async () => {
+    applyTheme(settings.theme, false);
+    const code = new URLSearchParams(location.search).get('code');
+    if (code) { document.getElementById('auth-loading').classList.add('flex'); document.getElementById('auth-loading').classList.remove('hidden'); await exchangeCode(code); }
+    else if (accessToken) initEngine();
+};
+function loginWithBungie(){ location.href = 'https://www.bungie.net/en/OAuth/Authorize?client_id='+CLIENT_ID+'&response_type=code'; }
+function logout(){ localStorage.removeItem('bungie_access_token'); location.href = location.pathname; }
+async function exchangeCode(code){
+    try {
+        const r = await fetch('https://www.bungie.net/Platform/App/OAuth/Token/', { method:'POST', headers:{'Content-Type':'application/x-www-form-urlencoded'}, body:new URLSearchParams({grant_type:'authorization_code',client_id:CLIENT_ID,code}) });
+        const d = await r.json();
+        if (d.access_token) { accessToken = d.access_token; localStorage.setItem('bungie_access_token', accessToken); history.replaceState({},'',location.pathname); initEngine(); }
+        else throw new Error();
+    } catch(e){ showToast('Échec OAuth','error'); setTimeout(logout,3000); }
+}
+function initEngine(){ document.getElementById('login-view').style.display='none'; document.getElementById('app-view').style.display='flex'; boot(); }
+
+async function fetchAPI(end, method='GET', body=null, keyOnly=false){
+    const h = { 'X-API-Key': API_KEY };
+    if (!keyOnly && accessToken) h['Authorization'] = 'Bearer ' + accessToken;
+    const opt = { method, headers:h };
+    if (body){ h['Content-Type']='application/json'; opt.body = JSON.stringify(body); }
+    const r = await fetch('https://www.bungie.net/Platform'+end, opt);
+    if (r.status === 401 && !keyOnly){ showToast('Session expirée','error'); setTimeout(logout,2000); throw new Error('401'); }
+    return r.json();
+}
+const profileUrl = () => '/Destiny2/'+settings.membershipType+'/Profile/'+settings.membershipId+'/?components=100,102,200,201,205,300';
+
+async function boot(){
+    try {
+        // 1) Identité + plateformes
+        const u = await fetchAPI('/User/GetMembershipsForCurrentUser/');
+        bungieUser = u.Response.bungieNetUser;
+        memberships = u.Response.destinyMemberships || [];
+        document.getElementById('user-bungie-name').textContent = bungieUser.uniqueName;
+        if (bungieUser.profilePicturePath) document.getElementById('user-avatar').src = 'https://www.bungie.net'+bungieUser.profilePicturePath;
+
+        // Plateforme : réglage sauvegardé sinon principale (primaryMembershipId) sinon première.
+        let m = memberships.find(x => x.membershipId === settings.membershipId);
+        if (!m) m = memberships.find(x => x.membershipId === u.Response.primaryMembershipId) || memberships[0];
+        settings.membershipId = m.membershipId; settings.membershipType = m.membershipType; saveSettings();
+
+        // 2) Manifeste local (une fois), puis profil groupé (UNE requête tout-en-un)
+        await Manifest.ensure();
+        setLoader('Chargement du profil...');
+        const p = await fetchAPI(profileUrl());
+        profile = p.Response;
+        renderCharacters();
+
+        // 3) Stats compte (endpoint distinct) pour la Vue d'ensemble
+        fetchAPI('/Destiny2/'+settings.membershipType+'/Account/'+settings.membershipId+'/Stats/?groups=1,2')
+            .then(s => { if (s.Response) renderDashboard(s.Response.mergedAllCharacters.results); });
+
+        document.getElementById('main-loader').style.display = 'none';
+        const startBtn = document.querySelector('[onclick*="'+settings.defaultTab+'"]') || document.querySelector('.nav-btn');
+        switchTab(settings.defaultTab, startBtn);
+        renderSettings();
+        setupAutoRefresh();
+    } catch(e){ console.error(e); setLoader('Erreur. Le Manifeste ou l\'API est injoignable.'); showToast('Erreur de synchronisation','error'); }
+}
+
+// =====================================================================
+// NAVIGATION
+// =====================================================================
+function switchTab(id, btn){
+    document.querySelectorAll('.view-panel').forEach(v=>v.classList.remove('active'));
+    document.querySelectorAll('.nav-btn').forEach(b=>{ b.classList.remove('bg-accent','text-black','shadow-sm'); b.classList.add('text-gray-400'); });
+    document.getElementById(id).classList.add('active');
+    if (btn){ btn.classList.remove('text-gray-400'); btn.classList.add('bg-accent','text-black','shadow-sm'); }
+    if (id==='view-vault' && !vaultLoaded) renderVault();
+    if (id==='view-raidstat' && !raidLoaded) buildRaidStat();
+}
+
+// =====================================================================
+// RAFRAÎCHISSEMENT (1 seule requête profil, ré-affiche tout en local)
+// =====================================================================
+async function syncProfile(reopenChar=null, silent=false, manual=false){
+    const btn = document.getElementById('refresh-btn');
+    if (manual && btn) btn.querySelector('i').classList.add('fa-spin');
+    try {
+        const p = await fetchAPI(profileUrl());
+        profile = p.Response;
+        renderCharacters();
+        vaultLoaded = false;
+        if (document.getElementById('view-vault').classList.contains('active')) renderVault();
+        const modal = document.getElementById('inventory-modal');
+        if (!modal.classList.contains('hidden') && modalCharOpen) renderModalContent(modalCharOpen);
+        if (manual) showToast('Données actualisées','info');
+    } catch(e){ if (!silent) showToast('Erreur de rafraîchissement','error'); }
+    finally { if (manual && btn) setTimeout(()=>btn.querySelector('i').classList.remove('fa-spin'), 600); }
+}
+function setupAutoRefresh(){
+    if (autoTimer) clearInterval(autoTimer);
+    if (settings.autoRefresh > 0) autoTimer = setInterval(()=>syncProfile(null, true), settings.autoRefresh*1000);
+}
+
+// =====================================================================
+// VUE D'ENSEMBLE
+// =====================================================================
+function renderDashboard(res){
+    const pve = res.allPvE?.allTime || {}, pvp = res.allPvP?.allTime || {}, gbt = res.allPvECompetitive?.allTime || res.pvecompetitive?.allTime || {};
+    const sum = (a,b,id) => parseInt(a?.[id]?.basic?.value||0) + parseInt(b?.[id]?.basic?.value||0);
+    const tk = sum(pve,pvp,'kills'), td = sum(pve,pvp,'deaths');
+    const hrs = Math.floor((parseInt(pve.secondsPlayed?.basic?.value||0)+parseInt(pvp.secondsPlayed?.basic?.value||0))/3600);
+    const hi = (t,v,i,col) => '<div class="bg-destiny-card border border-destiny-border p-5 rounded-2xl relative overflow-hidden"><div class="absolute top-0 left-0 w-1 h-full" style="background:'+col+'"></div><div class="flex items-center gap-4"><div class="w-11 h-11 rounded-xl flex items-center justify-center text-xl bg-black/40" style="color:'+col+'"><i class="fa-solid '+i+'"></i></div><div class="overflow-hidden"><p class="text-gray-400 text-[10px] uppercase font-bold tracking-widest truncate">'+t+'</p><h4 class="text-2xl font-black text-white truncate">'+v+'</h4></div></div></div>';
+    const card = (title,icon,mode,ids) => { const rows = ids.filter(id=>mode[id]).map(id=>'<div class="flex justify-between py-1.5 border-b border-white/5"><span class="text-gray-400 text-xs">'+statLabel(id)+'</span><span class="text-white font-bold text-xs font-mono">'+fmt(mode[id])+'</span></div>').join(''); return rows ? '<div class="bg-destiny-card border border-destiny-border rounded-2xl p-5"><h3 class="text-sm font-display font-bold text-white uppercase tracking-widest mb-3 flex items-center gap-2"><i class="fa-solid '+icon+' text-accent"></i>'+title+'</h3>'+rows+'</div>' : ''; };
+    document.getElementById('dashboard-container').innerHTML =
+        '<div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">'
+        + hi('Temps de jeu', hrs+'h', 'fa-clock', '#3b82f6')
+        + hi('Éliminations', tk.toLocaleString(), 'fa-crosshairs', '#ef4444')
+        + hi('K/D Global', td>0?(tk/td).toFixed(2):tk, 'fa-chart-line', 'rgb(var(--accent-rgb))')
+        + hi('K/D Épreuve', pvp.killsDeathsRatio?.basic?.displayValue||'0.0', 'fa-gun', '#f59e0b')
+        + '</div>'
+        + '<div class="grid grid-cols-1 md:grid-cols-3 gap-5">'
+        + card('Joueur c. Environnement','fa-earth-americas',pve,['activitiesCleared','kills','deaths','killsDeathsRatio','efficiency','secondsPlayed','longestKillSpree','bestSingleGameKills','resurrectionsPerformed','suicides'])
+        + card('Joueur c. Joueur','fa-crosshairs',pvp,['activitiesEntered','activitiesWon','kills','deaths','killsDeathsRatio','killsDeathsAssists','efficiency','combatRating','bestSingleGameKills','longestKillSpree','secondsPlayed'])
+        + card('Gambit','fa-coins',gbt,['activitiesEntered','activitiesWon','kills','deaths','killsDeathsRatio','efficiency','secondsPlayed'])
+        + '</div>';
+}
+
+// =====================================================================
+// ESCOUADE (personnages + caractéristiques)
+// =====================================================================
+function renderCharacters(){
+    const c = document.getElementById('characters-container'); c.innerHTML = '';
+    Object.values(profile.characters.data).forEach(ch => {
+        const statsHTML = Object.entries(ch.stats || {})
+            .filter(([h]) => Number(h) !== POWER_STAT)
+            .map(([h,v]) => { const def = Manifest.getStat(h); if (!def) return ''; const ic = def.ic ? '<img src="https://www.bungie.net'+def.ic+'" class="w-4 h-4 opacity-80">' : '';
+                return '<div class="bg-black/40 rounded px-2 py-1.5 flex items-center justify-between border border-white/5" title="'+def.n+'">'+ic+'<span class="text-white font-mono text-sm">'+v+'</span></div>'; })
+            .join('');
+        c.innerHTML += '<div class="rounded-2xl overflow-hidden shadow-2xl flex flex-col border border-destiny-border hover:border-accent transition-colors bg-destiny-card">'
+            + '<div class="h-28 bg-cover bg-center p-4 flex justify-between" style="background-image:url(\'https://www.bungie.net'+ch.emblemBackgroundPath+'\');">'
+            + '<div><h3 class="text-2xl font-display font-bold text-white uppercase drop-shadow">'+classHashes[ch.classHash]+'</h3><p class="text-white text-xs font-semibold drop-shadow">'+raceHashes[ch.raceHash]+'</p></div>'
+            + '<div class="text-3xl font-bold text-yellow-400 drop-shadow flex items-start gap-1"><i class="fa-solid fa-bolt text-xl mt-1"></i>'+ch.light+'</div></div>'
+            + '<div class="p-5 flex-1 flex flex-col">'
+            + '<p class="text-[10px] text-gray-500 uppercase tracking-widest font-bold mb-2">Caractéristiques</p>'
+            + '<div class="grid grid-cols-3 gap-2 mb-4">'+(statsHTML || '<p class="col-span-3 text-xs text-gray-600">—</p>')+'</div>'
+            + '<button onclick="openModal(\''+ch.characterId+'\')" class="mt-auto w-full bg-destiny-border hover:bg-accent hover:text-black text-white py-3 rounded-lg text-xs font-bold uppercase tracking-wider transition-all flex justify-center items-center gap-2"><i class="fa-solid fa-boxes-stacked"></i> Gérer l\'équipement</button>'
+            + '</div></div>';
+    });
+}
+
+// =====================================================================
+// MODAL ÉQUIPEMENT
+// =====================================================================
+function powerOf(instId){ return profile.itemComponents?.instances?.data?.[instId]?.primaryStat?.value || ''; }
+function tierBorder(tr){ return tr==='Exotic'?'border-destiny-exotic':tr==='Legendary'?'border-purple-500/70':tr==='Rare'?'border-blue-500/70':'border-gray-600'; }
+
+async function openModal(charId){
+    modalCharOpen = charId;
+    const m = document.getElementById('inventory-modal');
+    m.classList.remove('hidden'); m.classList.add('flex');
+    setTimeout(()=>{ m.classList.remove('opacity-0'); document.getElementById('inventory-modal-content-box').classList.remove('scale-95'); }, 10);
+    document.getElementById('modal-char-name').textContent = 'Équipement : ' + classHashes[profile.characters.data[charId].classHash];
+    await renderModalContent(charId);
+}
+function closeModal(){
+    modalCharOpen = null;
+    const m = document.getElementById('inventory-modal');
+    m.classList.add('opacity-0'); document.getElementById('inventory-modal-content-box').classList.add('scale-95');
+    setTimeout(()=>{ m.classList.add('hidden'); m.classList.remove('flex'); }, 300);
+}
+async function renderModalContent(charId){
+    const content = document.getElementById('modal-inventory-content');
+    const eq = profile.characterEquipment.data[charId].items;
+    const bags = profile.characterInventories.data[charId].items;
+    const hashes = [...eq, ...bags].map(i=>i.itemHash);
+    if (!Manifest.full){ content.innerHTML = '<div class="flex flex-col items-center py-20"><div class="loader-ring mb-4"></div><p class="text-accent font-display uppercase tracking-widest">Résolution...</p></div>'; await Manifest.resolve(hashes); }
+
+    let h = '<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">';
+    for (const b of EQUIP_ORDER){
+        const e = eq.find(i=>i.bucketHash===b); if (!e) continue;
+        const ed = Manifest.getItem(e.itemHash); if (!ed) continue;
+        const brd = tierBorder(ed.tr);
+        h += '<div class="bg-destiny-card border border-destiny-border rounded-xl p-4 flex flex-col h-96">'
+            + '<h3 class="text-gray-300 font-display font-bold text-xs uppercase tracking-widest border-b border-destiny-border pb-2 mb-3">'+BUCKET_NAMES[b]+'</h3>'
+            + '<div class="bg-black/30 p-2 rounded-lg border '+brd+' flex items-center gap-3 mb-3 shrink-0">'
+            + '<img src="https://www.bungie.net'+ed.ic+'" class="w-12 h-12 rounded border '+brd+'">'
+            + '<div class="overflow-hidden"><p class="text-white font-bold text-xs truncate">'+ed.n+'</p>'+(settings.showPower?'<p class="text-[10px] text-yellow-400 font-mono mt-0.5"><i class="fa-solid fa-bolt"></i> '+powerOf(e.itemInstanceId)+'</p>':'')+'</div></div>'
+            + '<div class="overflow-y-auto flex-1 custom-scroll pr-1 space-y-2">';
+        const reps = bags.filter(i=>i.bucketHash===b);
+        if (!reps.length) h += '<div class="text-[10px] text-gray-500 text-center py-4 border border-dashed border-gray-700 rounded">Réserve vide</div>';
+        for (const r of reps){
+            const rd = Manifest.getItem(r.itemHash); if (!rd) continue;
+            h += '<div class="bg-black/40 p-2 rounded-lg border border-destiny-border flex items-center justify-between group">'
+                + '<div class="flex items-center gap-2 overflow-hidden"><img src="https://www.bungie.net'+rd.ic+'" class="w-8 h-8 rounded border '+tierBorder(rd.tr)+'">'
+                + '<div class="overflow-hidden"><p class="text-gray-300 text-[10px] font-bold truncate group-hover:text-white" style="max-width:90px;">'+rd.n+'</p>'+(settings.showPower?'<p class="text-[9px] text-yellow-400"><i class="fa-solid fa-bolt text-[8px]"></i> '+powerOf(r.itemInstanceId)+'</p>':'')+'</div></div>'
+                + '<div class="flex gap-1 ml-1 shrink-0">'
+                + '<button onclick="doEquip(this,\''+r.itemInstanceId+'\',\''+charId+'\')" class="bg-gray-700 hover:bg-emerald-600 text-white text-[9px] w-6 h-6 rounded flex items-center justify-center" title="Équiper"><i class="fa-solid fa-hand-fist"></i></button>'
+                + '<button onclick="doTransfer(this,\''+r.itemHash+'\',\''+r.itemInstanceId+'\',\''+charId+'\',true)" class="bg-gray-700 hover:bg-blue-600 text-white text-[9px] w-6 h-6 rounded flex items-center justify-center" title="Au coffre"><i class="fa-solid fa-box-archive"></i></button>'
+                + '</div></div>';
         }
+        h += '</div></div>';
+    }
+    content.innerHTML = h + '</div>';
+}
 
-        window.onload = async () => { applyTheme(currentTheme, false); renderSettings(); const code = new URLSearchParams(window.location.search).get('code'); if (code) { document.getElementById('auth-loading').classList.remove('hidden'); await exchangeCode(code); } else if (accessToken) initEngine(); };
-        function loginWithBungie() { window.location.href = `https://www.bungie.net/en/OAuth/Authorize?client_id=${CLIENT_ID}&response_type=code`; }
-        function logout() { localStorage.removeItem('bungie_access_token'); window.location.href = window.location.pathname; }
-        
-        async function exchangeCode(code) {
-            try {
-                const res = await fetch('https://www.bungie.net/Platform/App/OAuth/Token/', { method: 'POST', headers: { 'Content-Type': 'application/x-www-form-urlencoded' }, body: new URLSearchParams({ grant_type: 'authorization_code', client_id: CLIENT_ID, code }) });
-                const d = await res.json(); if (d.access_token) { accessToken = d.access_token; localStorage.setItem('bungie_access_token', accessToken); window.history.replaceState({}, document.title, window.location.pathname); initEngine(); } else throw new Error();
-            } catch (e) { showToast("Erreur OAuth", 'error'); setTimeout(logout, 3000); }
+// =====================================================================
+// COFFRE-FORT (armes + armures, transfert vers personnage compatible)
+// =====================================================================
+async function renderVault(){
+    const cont = document.getElementById('vault-container'), ld = document.getElementById('vault-loader');
+    cont.innerHTML = ''; ld.classList.remove('hidden'); ld.classList.add('flex');
+    const raw = profile.profileInventory.data.items.filter(i=>i.bucketHash===BUCKETS.VAULT);
+    if (!Manifest.full) await Manifest.resolve(raw.map(i=>i.itemHash));
+
+    const chars = Object.values(profile.characters.data);
+    let html = '', cnt = { all:0, weapon:0, armor:0 };
+    for (const it of raw){
+        const d = Manifest.getItem(it.itemHash); if (!d) continue;
+        const isW = d.t===ITEM.WEAPON, isA = d.t===ITEM.ARMOR; if (!isW && !isA) continue;
+        if (settings.hideNonExotic && d.tr!=='Exotic') continue;
+        const cat = isW?'weapon':'armor'; cnt.all++; cnt[cat]++;
+        const ct = isA ? d.ct : 3;
+        let btns = '';
+        chars.forEach(ch => {
+            const ok = ct===3 || ct===undefined || CLASS_TYPE[ch.classHash]===ct;
+            btns += ok
+                ? '<button onclick="doTransfer(this,\''+it.itemHash+'\',\''+it.itemInstanceId+'\',\''+ch.characterId+'\',false)" class="flex-1 bg-destiny-border hover:bg-accent hover:text-black py-1.5 rounded text-xs transition-colors" title="Vers '+classHashes[ch.classHash]+'"><i class="fa-solid '+CLASS_ICON[ch.classHash]+'"></i></button>'
+                : '<button disabled class="flex-1 bg-black/40 py-1.5 rounded text-xs text-gray-700 cursor-not-allowed" title="Classe incompatible"><i class="fa-solid '+CLASS_ICON[ch.classHash]+'"></i></button>';
+        });
+        html += '<div class="item-card bg-destiny-card border border-destiny-border rounded-xl p-3 flex flex-col gap-3" data-cat="'+cat+'">'
+            + '<div class="flex gap-3 items-center"><img src="https://www.bungie.net'+d.ic+'" class="w-12 h-12 rounded border '+tierBorder(d.tr)+' shrink-0">'
+            + '<div class="overflow-hidden flex-1"><div class="flex justify-between items-center gap-2"><p class="text-white font-bold text-xs truncate '+(d.tr==='Exotic'?'text-destiny-exotic':'')+'">'+d.n+'</p>'+(settings.showPower&&powerOf(it.itemInstanceId)?'<span class="text-yellow-400 font-bold text-[11px] shrink-0"><i class="fa-solid fa-bolt"></i>'+powerOf(it.itemInstanceId)+'</span>':'')+'</div>'
+            + '<p class="text-[10px] text-gray-400 uppercase truncate">'+d.tn+'</p></div></div>'
+            + '<div class="flex gap-1.5 bg-black/20 p-1 rounded-lg">'+btns+'</div></div>';
+    }
+    ld.classList.add('hidden'); ld.classList.remove('flex');
+    const badge = document.getElementById('vault-count-badge'); badge.textContent = cnt.all+' objets'; badge.classList.remove('hidden');
+    document.querySelectorAll('#vault-filter-bar [data-count]').forEach(el => el.textContent = cnt[el.dataset.count]||0);
+    document.getElementById('vault-filter-bar').classList.replace('hidden','flex');
+    cont.innerHTML = html || '<div class="col-span-full text-center text-gray-500 py-16 border border-dashed border-gray-700 rounded-2xl"><i class="fa-solid fa-box-open text-4xl mb-3 opacity-50"></i><br>Aucun objet correspondant.</div>';
+    vaultLoaded = true; applyVaultFilter();
+}
+function setVaultFilter(f, btn){
+    vaultFilter = f;
+    document.querySelectorAll('.vault-filter-btn').forEach(b=>{ b.classList.remove('bg-accent','text-black'); b.classList.add('text-gray-400'); });
+    btn.classList.remove('text-gray-400'); btn.classList.add('bg-accent','text-black'); applyVaultFilter();
+}
+function applyVaultFilter(){ document.querySelectorAll('#vault-container .item-card').forEach(c => c.style.display = (vaultFilter==='all'||c.dataset.cat===vaultFilter)?'':'none'); }
+
+// =====================================================================
+// ACTIONS (équiper / transférer) -> rafraîchissement bidirectionnel
+// =====================================================================
+async function doEquip(btn, instId, charId){
+    btn.disabled = true; btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i>';
+    try {
+        const r = await fetchAPI('/Destiny2/Actions/Items/EquipItem/','POST',{ itemId:instId, characterId:charId, membershipType:settings.membershipType });
+        if (r.ErrorCode===1){ showToast('Objet équipé'); await syncProfile(charId); } else throw new Error(r.Message);
+    } catch(e){ showToast('Échec : '+(e.message||'équipement'),'error'); if (modalCharOpen) renderModalContent(modalCharOpen); }
+}
+async function doTransfer(btn, hash, instId, charId, toVault){
+    btn.disabled = true; btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i>';
+    try {
+        const r = await fetchAPI('/Destiny2/Actions/Items/TransferItem/','POST',{ itemReferenceHash:Number(hash), stackSize:1, transferToVault:toVault, itemId:instId, characterId:charId, membershipType:settings.membershipType });
+        if (r.ErrorCode===1){ showToast(toVault?'Envoyé au coffre':'Récupéré du coffre'); await syncProfile(toVault?charId:null); } else throw new Error(r.Message);
+    } catch(e){ showToast('Échec : '+(e.message||'transfert'),'error'); await syncProfile(modalCharOpen); }
+}
+
+// =====================================================================
+// RAIDSTAT (tous les raids du jeu via le Manifeste local)
+// =====================================================================
+function normalizeRaid(n){ return (n||'').replace(/\s*:\s*(Master|Maître|Prestige|Legend|Légende|Normal|Héroïque|Heroic)\b.*$/i,'').replace(/\s*\((Master|Maître|Prestige)\)\s*$/i,'').trim(); }
+function loadRaidCatalog(){
+    if (raidCatalog) return raidCatalog;
+    const cat = {};
+    if (Manifest.activities){
+        for (const h in Manifest.activities){
+            const d = Manifest.activities[h];
+            const isRaid = (d.m||[]).includes(4) || /panth[ée]on/i.test(d.n||'');
+            if (!isRaid) continue;
+            const n = normalizeRaid(d.n); if (!n) continue;
+            if (!cat[n]) cat[n] = { name:n, img:d.img, hashes:new Set() };
+            cat[n].hashes.add(Number(h)); if (!cat[n].img && d.img) cat[n].img = d.img;
         }
+    }
+    raidCatalog = cat; return cat;
+}
+async function buildRaidStat(){
+    const ld = document.getElementById('raidstat-loader'), ct = document.getElementById('raidstat-content');
+    ld.classList.remove('hidden'); ld.classList.add('flex'); ct.classList.add('hidden');
+    try {
+        const s = await fetchAPI('/Destiny2/'+settings.membershipType+'/Account/'+settings.membershipId+'/Stats/?groups=1,2');
+        const raid = s?.Response?.mergedAllCharacters?.results?.raid?.allTime || {};
+        const oc = (t,v) => '<div class="bg-destiny-card border border-destiny-border p-4 rounded-2xl text-center"><p class="text-accent text-[9px] uppercase font-bold tracking-widest mb-1">'+t+'</p><h4 class="text-2xl font-black text-white">'+v+'</h4></div>';
+        document.getElementById('raid-overall-stats').innerHTML =
+            oc('Complétions', raid.activitiesCleared?.basic?.value||0)
+          + oc('Lancements', raid.activitiesEntered?.basic?.value||0)
+          + oc('Éliminations', (raid.kills?.basic?.value||0).toLocaleString())
+          + oc('Morts', (raid.deaths?.basic?.value||0).toLocaleString())
+          + oc('K/D', raid.killsDeathsRatio?.basic?.displayValue||'0.0')
+          + oc('Heures', Math.floor((raid.secondsPlayed?.basic?.value||0)/3600)+'h');
 
-        function initEngine() { document.getElementById('login-view').style.display = 'none'; document.getElementById('app-view').style.display = 'flex'; initDestinyData(); }
-        async function fetchAPI(end, meth='GET', body=null, keyOnly=false) {
-            const h = { 'X-API-Key': API_KEY }; if (!keyOnly && accessToken) h['Authorization'] = `Bearer ${accessToken}`;
-            const opt = { method: meth, headers: h }; if (body) { opt.headers['Content-Type'] = 'application/json'; opt.body = JSON.stringify(body); }
-            const r = await fetch(`https://www.bungie.net/Platform${end}`, opt); if (r.status===401 && !keyOnly) { showToast("Token expiré", "error"); setTimeout(logout, 2000); throw new Error(); } return await r.json();
-        }
-        async function getManifestDef(type, hash) {
-            const k = `${type}_${hash}`; if (manifestCache[k]) return manifestCache[k];
-            try { const r = await fetchAPI(`/Destiny2/Manifest/${type}/${hash}/`, 'GET', null, true); if (r?.Response) { manifestCache[k] = r.Response; persistManifestCache(); return r.Response; } } catch (e) {} return null;
-        }
+        const ids = Object.keys(profile.characters.data);
+        const agg = await Promise.all(ids.map(id => fetchAPI('/Destiny2/'+settings.membershipType+'/Account/'+settings.membershipId+'/Character/'+id+'/Stats/AggregateActivityStats/')));
+        const byHash = {};
+        agg.forEach(r => r?.Response?.activities?.forEach(a => {
+            const h = a.activityHash, v = a.values;
+            if (!byHash[h]) byHash[h] = { comp:0, kills:0, deaths:0, sec:0, fast:Infinity };
+            byHash[h].comp += v.activityCompletions?.basic?.value||0;
+            byHash[h].kills += v.activityKills?.basic?.value||0;
+            byHash[h].deaths += v.activityDeaths?.basic?.value||0;
+            byHash[h].sec += v.activitySecondsPlayed?.basic?.value||0;
+            const f = v.fastestCompletionMsForActivity?.basic?.value||0; if (f>0 && f<byHash[h].fast) byHash[h].fast = f;
+        }));
 
-        async function initDestinyData() {
-            try {
-                await initManifestCache();
-                const u = await fetchAPI('/User/GetMembershipsForCurrentUser/');
-                document.getElementById('user-bungie-name').textContent = u.Response.bungieNetUser.uniqueName;
-                if (u.Response.bungieNetUser.profilePicturePath) document.getElementById('user-avatar').src = `https://www.bungie.net${u.Response.bungieNetUser.profilePicturePath}`;
-                const prof = u.Response.destinyMemberships[0]; destinyMembershipId = prof.membershipId; membershipType = prof.membershipType;
-                
-                const pRes = await fetchAPI(`/Destiny2/${membershipType}/Profile/${destinyMembershipId}/?components=100,102,200,201,205,300`);
-                globalProfileData = pRes.Response; renderCharacters(globalProfileData.characters.data);
-                
-                fetchAPI(`/Destiny2/${membershipType}/Account/${destinyMembershipId}/Stats/?groups=1,2,3`).then(s => { if (s.Response) renderDashboardStats(s.Response.mergedAllCharacters.results); });
-                document.getElementById('main-loader').style.display = 'none'; switchTab('view-dashboard', document.querySelector('.nav-btn'));
-            } catch (e) { showToast("Erreur synchro", "error"); }
-        }
+        const cat = loadRaidCatalog();
+        let list = Object.values(cat).map(r => {
+            const t = { comp:0, kills:0, deaths:0, sec:0, fast:Infinity };
+            r.hashes.forEach(h => { const p = byHash[h]; if (!p) return; t.comp+=p.comp; t.kills+=p.kills; t.deaths+=p.deaths; t.sec+=p.sec; if (p.fast<t.fast) t.fast=p.fast; });
+            return { name:r.name, img:r.img, ...t };
+        });
+        list.sort((a,b)=>(b.comp-a.comp)||a.name.localeCompare(b.name));
 
-        function switchTab(id, btn) {
-            document.querySelectorAll('.view-panel').forEach(v => v.classList.remove('active'));
-            document.querySelectorAll('.nav-btn').forEach(b => { b.classList.remove('bg-accent','text-black','shadow-sm'); b.classList.add('text-gray-400'); });
-            document.getElementById(id).classList.add('active'); btn.classList.remove('text-gray-400'); btn.classList.add('bg-accent','text-black','shadow-sm');
-            if (id === 'view-vault' && !vaultLoaded) renderVault();
-            if (id === 'view-raidstat' && !raidStatLoaded) buildRaidStatData();
-        }
+        document.getElementById('raid-specific-stats').innerHTML = list.map(r => {
+            const played = r.comp>0;
+            const fStr = r.fast!==Infinity ? Math.floor(r.fast/60000)+'m '+(Math.floor(r.fast/1000)%60+'').padStart(2,'0')+'s' : '--:--';
+            const kd = r.deaths>0?(r.kills/r.deaths).toFixed(2):(r.kills||0);
+            const hh = Math.floor(r.sec/3600), mm = Math.floor((r.sec%3600)/60);
+            const time = r.sec>0?(hh>0?hh+'h '+mm+'m':mm+'m'):'—';
+            const bg = r.img?'https://www.bungie.net'+r.img:'https://www.bungie.net/img/theme/destiny/bgs/bg_destiny2_1.jpg';
+            return '<div class="relative rounded-2xl overflow-hidden shadow-2xl group border border-destiny-border hover:border-accent transition-all '+(played?'':'opacity-70 hover:opacity-100')+'">'
+                + '<div class="absolute inset-0 bg-cover bg-center transition-transform duration-700 group-hover:scale-105 '+(played?'':'grayscale group-hover:grayscale-0')+'" style="background-image:url(\''+bg+'\');"></div>'
+                + '<div class="absolute inset-0 bg-gradient-to-t from-[#080b10] via-[#080b10]/75 to-[#080b10]/20"></div>'
+                + '<div class="relative z-10 p-5 flex flex-col justify-end min-h-[15rem]">'
+                + '<div class="mb-auto">'+(played?'<span class="bg-accent/90 text-black text-[9px] font-bold uppercase tracking-widest px-2 py-1 rounded">Complété</span>':'<span class="bg-black/60 text-gray-300 text-[9px] font-bold uppercase tracking-widest px-2 py-1 rounded border border-white/10">Jamais terminé</span>')+'</div>'
+                + '<h4 class="text-lg font-display font-bold text-white uppercase tracking-widest mb-3 leading-tight drop-shadow">'+r.name+'</h4>'
+                + '<div class="grid grid-cols-2 gap-x-4 gap-y-2 border-t border-white/20 pt-3">'
+                + '<div><p class="text-[9px] text-gray-400 uppercase font-bold">Complétions</p><p class="text-xl font-black text-accent">'+r.comp+'</p></div>'
+                + '<div class="text-right"><p class="text-[9px] text-gray-400 uppercase font-bold">Record</p><p class="text-base font-bold text-white font-mono">'+fStr+'</p></div>'
+                + '<div><p class="text-[9px] text-gray-400 uppercase font-bold">K/D</p><p class="text-sm font-bold text-white">'+kd+'</p></div>'
+                + '<div class="text-right"><p class="text-[9px] text-gray-400 uppercase font-bold">Temps</p><p class="text-sm font-bold text-white">'+time+'</p></div>'
+                + '</div></div></div>';
+        }).join('') || '<div class="col-span-full text-center text-gray-500 py-10">Aucune incursion détectée.</div>';
 
-        function renderDashboardStats(data) {
-            const c = document.getElementById('dashboard-stats-container');
-            const pve = data.allPvE?.allTime || {}, pvp = data.allPvP?.allTime || {};
-            const sum = (a,b,id) => (parseInt(a?.[id]?.basic?.value||0) + parseInt(b?.[id]?.basic?.value||0));
-            const totalKills = sum(pve,pvp,'kills'), totalDeaths = sum(pve,pvp,'deaths');
-            const hHTML = `<div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
-                <div class="bg-destiny-card border border-destiny-border p-5 rounded-2xl"><p class="text-gray-400 text-[10px] uppercase font-bold">Éliminations</p><h4 class="text-2xl font-black text-white">${totalKills.toLocaleString()}</h4></div>
-                <div class="bg-destiny-card border border-destiny-border p-5 rounded-2xl"><p class="text-gray-400 text-[10px] uppercase font-bold">Morts</p><h4 class="text-2xl font-black text-white">${totalDeaths.toLocaleString()}</h4></div>
-                <div class="bg-destiny-card border border-destiny-border p-5 rounded-2xl"><p class="text-gray-400 text-[10px] uppercase font-bold">K/D Global</p><h4 class="text-2xl font-black text-accent">${totalDeaths>0?(totalKills/totalDeaths).toFixed(2):totalKills}</h4></div>
-                <div class="bg-destiny-card border border-destiny-border p-5 rounded-2xl"><p class="text-gray-400 text-[10px] uppercase font-bold">Victoires JcJ</p><h4 class="text-2xl font-black text-white">${pvp.activitiesWon?.basic?.displayValue||0}</h4></div>
-            </div>`;
-            c.innerHTML = hHTML;
-        }
+        raidLoaded = true; ld.classList.remove('flex'); ld.classList.add('hidden'); ct.classList.remove('hidden');
+    } catch(e){ console.error(e); showToast('Erreur RaidStat','error'); ld.classList.remove('flex'); ld.classList.add('hidden'); }
+}
 
-        function renderCharacters(chars) {
-            const c = document.getElementById('characters-container'); c.innerHTML = '';
-            Object.values(chars).forEach(ch => {
-                const s = ch.stats;
-                c.innerHTML += `
-                    <div class="rounded-2xl overflow-hidden shadow-2xl flex flex-col justify-between border border-destiny-border hover:border-accent transition-colors group bg-destiny-card">
-                        <div class="h-28 bg-cover bg-center p-4 flex justify-between" style="background-image: url('https://www.bungie.net${ch.emblemBackgroundPath}');">
-                            <div><h3 class="text-2xl font-display font-bold text-white uppercase drop-shadow-md">${classHashes[ch.classHash]}</h3><p class="text-white text-xs font-semibold drop-shadow">${raceHashes[ch.raceHash]}</p></div>
-                            <div class="text-3xl font-bold text-yellow-400 drop-shadow-md flex items-start gap-1"><i class="fa-solid fa-bolt text-xl mt-1"></i>${ch.light}</div>
-                        </div>
-                        <div class="p-5 flex-1 flex flex-col">
-                            <p class="text-[10px] text-gray-500 uppercase tracking-widest font-bold mb-2">Caractéristiques Principales</p>
-                            <div class="grid grid-cols-3 gap-2 mb-4">
-                                <div class="bg-black/40 rounded px-2 py-1.5 flex flex-col items-center border border-white/5"><i class="fa-solid fa-angles-up text-gray-400 text-xs mb-1"></i><span class="text-white font-mono text-sm">${s[STAT_HASHES.MOB]}</span></div>
-                                <div class="bg-black/40 rounded px-2 py-1.5 flex flex-col items-center border border-white/5"><i class="fa-solid fa-shield-halved text-gray-400 text-xs mb-1"></i><span class="text-white font-mono text-sm">${s[STAT_HASHES.RES]}</span></div>
-                                <div class="bg-black/40 rounded px-2 py-1.5 flex flex-col items-center border border-white/5"><i class="fa-solid fa-heart-pulse text-gray-400 text-xs mb-1"></i><span class="text-white font-mono text-sm">${s[STAT_HASHES.REC]}</span></div>
-                                <div class="bg-black/40 rounded px-2 py-1.5 flex flex-col items-center border border-white/5"><i class="fa-solid fa-bomb text-gray-400 text-xs mb-1"></i><span class="text-white font-mono text-sm">${s[STAT_HASHES.DIS]}</span></div>
-                                <div class="bg-black/40 rounded px-2 py-1.5 flex flex-col items-center border border-white/5"><i class="fa-solid fa-brain text-gray-400 text-xs mb-1"></i><span class="text-white font-mono text-sm">${s[STAT_HASHES.INT]}</span></div>
-                                <div class="bg-black/40 rounded px-2 py-1.5 flex flex-col items-center border border-white/5"><i class="fa-solid fa-hand-fist text-gray-400 text-xs mb-1"></i><span class="text-white font-mono text-sm">${s[STAT_HASHES.STR]}</span></div>
-                            </div>
-                            <button onclick="openInventoryModal('${ch.characterId}', '${classHashes[ch.classHash]}')" class="mt-auto w-full bg-destiny-border hover:bg-accent hover:text-black text-white py-3 rounded-lg text-xs font-bold uppercase tracking-wider transition-all flex justify-center items-center gap-2"><i class="fa-solid fa-boxes-stacked"></i> Modifier Arsenal & Armures</button>
-                        </div>
-                    </div>`;
-            });
-        }
+// =====================================================================
+// PARAMÈTRES (complets)
+// =====================================================================
+function row(label, control, desc){
+    return '<div class="flex items-center justify-between gap-4 py-3 border-b border-white/5 last:border-0">'
+        + '<div><p class="text-white text-sm font-semibold">'+label+'</p>'+(desc?'<p class="text-[11px] text-gray-500 mt-0.5">'+desc+'</p>':'')+'</div>'
+        + '<div class="shrink-0">'+control+'</div></div>';
+}
+function panel(title, icon, inner){ return '<div class="bg-destiny-card border border-destiny-border rounded-2xl p-6"><h3 class="text-sm font-display font-bold text-white uppercase tracking-widest mb-2 flex items-center gap-2"><i class="fa-solid '+icon+' text-accent"></i>'+title+'</h3>'+inner+'</div>'; }
 
-        async function openInventoryModal(charId, className) {
-            const m = document.getElementById('inventory-modal'), c = document.getElementById('modal-inventory-content');
-            m.classList.remove('hidden'); m.classList.add('flex'); setTimeout(() => { m.classList.remove('opacity-0'); document.getElementById('inventory-modal-content-box').classList.remove('scale-95'); }, 10);
-            document.getElementById('modal-char-name').textContent = `Équipement : ${className}`;
-            c.innerHTML = '<div class="flex flex-col items-center py-20"><div class="loader-ring mb-4"></div><p class="text-accent font-display uppercase tracking-widest">Analyse en cours...</p></div>';
+async function renderSettings(){
+    const themeGrid = Object.entries(THEMES).map(([k,t])=>'<button onclick="applyTheme(\''+k+'\')" data-theme="'+k+'" class="theme-btn '+(settings.theme===k?'selected':'')+' bg-black/40 rounded-xl p-3 flex flex-col items-center gap-2 group"><span class="w-7 h-7 rounded-full border-2 border-white/20" style="background:rgb('+t.rgb+')"></span><span class="text-xs font-bold text-gray-300 group-hover:text-white">'+t.name+'</span><i class="check fa-solid fa-circle-check text-sm"></i></button>').join('');
 
-            const eq = globalProfileData.characterEquipment.data[charId].items;
-            const bags = globalProfileData.characterInventories.data[charId].items;
-            let h = '<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">';
+    const platformSel = memberships.length ? '<select onchange="changePlatform(this.value)" class="bg-destiny-bg border border-destiny-border rounded-lg px-3 py-2 text-sm text-white">'+memberships.map(m=>'<option value="'+m.membershipId+'" '+(m.membershipId===settings.membershipId?'selected':'')+'>'+(PLATFORMS[m.membershipType]||'Plateforme '+m.membershipType)+'</option>').join('')+'</select>' : '<span class="text-gray-500 text-sm">—</span>';
+    const langSel = '<select onchange="changeLang(this.value)" class="bg-destiny-bg border border-destiny-border rounded-lg px-3 py-2 text-sm text-white">'+Object.entries(LANGS).map(([k,v])=>'<option value="'+k+'" '+(settings.lang===k?'selected':'')+'>'+v+'</option>').join('')+'</select>';
+    const tabSel = '<select onchange="setSetting(\'defaultTab\',this.value)" class="bg-destiny-bg border border-destiny-border rounded-lg px-3 py-2 text-sm text-white">'+[['view-dashboard','Vue d\'ensemble'],['view-inventory','Escouade'],['view-vault','Coffre-fort'],['view-raidstat','RaidStat']].map(([v,l])=>'<option value="'+v+'" '+(settings.defaultTab===v?'selected':'')+'>'+l+'</option>').join('')+'</select>';
+    const refreshSel = '<select onchange="changeAutoRefresh(this.value)" class="bg-destiny-bg border border-destiny-border rounded-lg px-3 py-2 text-sm text-white">'+[[0,'Désactivé'],[30,'30 secondes'],[60,'1 minute'],[300,'5 minutes']].map(([v,l])=>'<option value="'+v+'" '+(settings.autoRefresh==v?'selected':'')+'>'+l+'</option>').join('')+'</select>';
+    const tog = (key) => '<div class="toggle '+(settings[key]?'on':'')+'" onclick="toggleSetting(\''+key+'\',this)"></div>';
 
-            for (const bHash of EQUIP_ORDER) {
-                const eqItem = eq.find(i => i.bucketHash === bHash); if (!eqItem) continue;
-                const eqDef = await getManifestDef('DestinyInventoryItemDefinition', eqItem.itemHash); if (!eqDef) continue;
-                const isEx = eqDef.inventory.tierTypeName === 'Exotic', brd = isEx ? 'border-destiny-exotic' : 'border-destiny-legendary';
-                const pwr = globalProfileData.itemComponents.instances.data[eqItem.itemInstanceId]?.primaryStat?.value || '';
+    const member = memberships.find(m=>m.membershipId===settings.membershipId) || {};
+    const ver = await localforage.getItem('ver_'+settings.lang);
+    const acct = '<div class="text-xs text-gray-400 space-y-1 font-mono">'
+        + '<div class="flex justify-between"><span>Compte Bungie</span><span class="text-white">'+(bungieUser?.uniqueName||'—')+'</span></div>'
+        + '<div class="flex justify-between"><span>Plateforme</span><span class="text-white">'+(PLATFORMS[member.membershipType]||'—')+'</span></div>'
+        + '<div class="flex justify-between"><span>Membership ID</span><span class="text-white">'+(settings.membershipId||'—')+'</span></div>'
+        + '<div class="flex justify-between"><span>App (Client ID)</span><span class="text-white">'+CLIENT_ID+'</span></div>'
+        + '<div class="flex justify-between"><span>Version Manifeste</span><span class="text-white truncate max-w-[160px]" title="'+(ver||'—')+'">'+(ver?ver.slice(0,18)+'…':'—')+'</span></div>'
+        + '</div><a href="https://www.bungie.net/7/fr/User/Profile/'+member.membershipType+'/'+settings.membershipId+'" target="_blank" class="inline-flex items-center gap-2 mt-3 text-accent text-xs font-bold hover:underline"><i class="fa-solid fa-arrow-up-right-from-square"></i> Voir le profil sur Bungie.net</a>';
 
-                h += `<div class="bg-destiny-card border border-destiny-border rounded-xl p-4 flex flex-col shadow-xl h-96">
-                        <h3 class="text-gray-300 font-display font-bold text-xs uppercase tracking-widest border-b border-destiny-border pb-2 mb-3">${BUCKET_NAMES[bHash]}</h3>
-                        <div class="bg-black/30 p-2 rounded-lg border ${brd} flex items-center gap-3 mb-3 shrink-0">
-                            <img src="https://www.bungie.net${eqDef.displayProperties.icon}" class="w-12 h-12 rounded border ${brd}">
-                            <div class="overflow-hidden"><p class="text-white font-bold text-xs truncate">${eqDef.displayProperties.name}</p><p class="text-[10px] text-yellow-400 font-mono mt-0.5"><i class="fa-solid fa-bolt"></i> ${pwr}</p></div>
-                        </div>
-                        <div class="overflow-y-auto flex-1 custom-scroll pr-1 space-y-2">`;
-                
-                const reps = bags.filter(i => i.bucketHash === bHash);
-                if (reps.length===0) h+= `<div class="text-[10px] text-gray-500 text-center py-4 border border-dashed border-gray-700 rounded">Vide</div>`;
-                for (const r of reps) {
-                    const rDef = await getManifestDef('DestinyInventoryItemDefinition', r.itemHash); if(!rDef) continue;
-                    const rBrd = rDef.inventory.tierTypeName === 'Exotic' ? 'border-destiny-exotic' : 'border-gray-600';
-                    const rPwr = globalProfileData.itemComponents.instances.data[r.itemInstanceId]?.primaryStat?.value || '';
-                    h += `<div class="bg-black/40 p-2 rounded-lg border border-destiny-border flex items-center justify-between group">
-                            <div class="flex items-center gap-2 overflow-hidden">
-                                <img src="https://www.bungie.net${rDef.displayProperties.icon}" class="w-8 h-8 rounded border ${rBrd}">
-                                <div><p class="text-gray-300 text-[10px] font-bold truncate group-hover:text-white" style="max-width:90px;">${rDef.displayProperties.name}</p><p class="text-[9px] text-yellow-400"><i class="fa-solid fa-bolt text-[8px]"></i> ${rPwr}</p></div>
-                            </div>
-                            <div class="flex gap-1 ml-1">
-                                <button onclick="actionEquip(this, '${r.itemInstanceId}', '${charId}')" class="bg-gray-700 hover:bg-emerald-600 text-white text-[9px] w-6 h-6 rounded flex items-center justify-center"><i class="fa-solid fa-hand-fist"></i></button>
-                                <button onclick="actionTransfer(this, '${r.itemHash}', '${r.itemInstanceId}', '${charId}', true)" class="bg-gray-700 hover:bg-blue-600 text-white text-[9px] w-6 h-6 rounded flex items-center justify-center"><i class="fa-solid fa-box-archive"></i></button>
-                            </div>
-                          </div>`;
-                }
-                h += `</div></div>`;
-            }
-            c.innerHTML = h + '</div>';
-        }
+    document.getElementById('settings-container').innerHTML =
+        panel('Compte & Plateforme','fa-user', row('Plateforme active', platformSel, 'Bascule entre vos comptes Destiny liés.'))
+      + panel('Apparence','fa-palette', '<p class="text-[11px] text-gray-500 mb-3">Couleur d\'accentuation (appliquée et sauvegardée instantanément).</p><div class="grid grid-cols-5 gap-3">'+themeGrid+'</div>')
+      + panel('Affichage','fa-eye',
+            row('Langue du Manifeste', langSel, 'Langue des noms d\'objets et d\'incursions.')
+          + row('Afficher le niveau de puissance', tog('showPower'))
+          + row('Coffre : exotiques uniquement', tog('hideNonExotic'), 'Masque les objets non-exotiques dans le coffre.')
+          + row('Onglet de démarrage', tabSel)
+          + row('Rafraîchissement automatique', refreshSel, 'Réinterroge l\'API à intervalle régulier.'))
+      + panel('Cache & Données','fa-database',
+            '<div class="bg-black/30 rounded-xl p-4 border border-destiny-border flex items-center justify-between gap-3 mb-3"><div><p class="text-white font-bold text-sm">Manifeste local (IndexedDB)</p><p id="cache-info" class="text-[11px] text-gray-500 font-mono mt-0.5">'+( Manifest.items?Object.keys(Manifest.items).length+' objets en cache':'—')+'</p></div>'
+          + '<button onclick="forceManifest()" class="bg-destiny-border hover:bg-accent hover:text-black border border-transparent text-gray-300 text-xs font-bold uppercase tracking-wider px-4 py-2.5 rounded-lg transition-colors"><i class="fa-solid fa-rotate"></i> Mettre à jour</button></div>'
+          + '<button onclick="clearAllData()" class="w-full bg-red-900/40 hover:bg-red-900/70 border border-red-800 text-red-300 hover:text-white text-xs font-bold uppercase tracking-wider px-4 py-3 rounded-lg transition-colors"><i class="fa-solid fa-trash-can"></i> Effacer toutes les données locales</button>')
+      + panel('Informations','fa-circle-info', acct);
+}
 
-        function closeModal(id) {
-            const m = document.getElementById(id), b = document.getElementById(id+'-content-box');
-            m.classList.remove('opacity-100'); m.classList.add('opacity-0'); if(b) b.classList.add('scale-95');
-            setTimeout(() => { m.classList.add('hidden'); m.classList.remove('flex'); }, 300);
-        }
-
-        async function actionEquip(btn, instId, charId) {
-            btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i>'; btn.disabled = true;
-            try {
-                const res = await fetchAPI('/Destiny2/Actions/Items/EquipItem/', 'POST', { itemId: instId, characterId: charId, membershipType });
-                if (res.ErrorCode === 1) { showToast("Équipé !"); setTimeout(()=>refreshDataSilently(charId), 1000); } else throw new Error();
-            } catch (e) { showToast("Erreur équipement", "error"); btn.innerHTML = '<i class="fa-solid fa-xmark"></i>'; }
-        }
-
-        async function actionTransfer(btn, hash, instId, charId, toVault) {
-            btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i>'; btn.disabled = true;
-            try {
-                const res = await fetchAPI('/Destiny2/Actions/Items/TransferItem/', 'POST', { itemReferenceHash: hash, stackSize: 1, transferToVault: toVault, itemId: instId, characterId: charId, membershipType });
-                if (res.ErrorCode === 1) { showToast(toVault ? "Au coffre" : "Récupéré"); refreshDataSilently(toVault ? charId : null); } else throw new Error();
-            } catch (e) { showToast("Erreur transfert", "error"); btn.innerHTML = '<i class="fa-solid fa-xmark"></i>'; }
-        }
-
-        async function refreshDataSilently(charId) {
-            try {
-                const r = await fetchAPI(`/Destiny2/${membershipType}/Profile/${destinyMembershipId}/?components=100,102,200,201,205,300`); globalProfileData = r.Response;
-                if (charId) openInventoryModal(charId, classHashes[globalProfileData.characters.data[charId].classHash]);
-                if (document.getElementById('view-vault').classList.contains('active')) renderVault();
-            } catch (e) {}
-        }
-
-        function normalizeRaidName(name) { return (name||'').replace(/\s*:\s*(Master|Maître|Prestige|Legend|Légende|Normal|Héroïque|Heroic)\b.*$/i, '').replace(/\s*\((Master|Maître|Prestige|Legend|Légende)\)\s*$/i, '').trim(); }
-
-        // ==========================================
-        // CORRECTION CORS : Téléchargement du Manifeste Statique
-        // ==========================================
-        async function loadRaidCatalog() {
-            if (raidCatalog) return raidCatalog;
-            const m = await fetchAPI('/Destiny2/Manifest/', 'GET', null, true);
-            const path = m?.Response?.jsonWorldComponentContentPaths?.fr?.DestinyActivityDefinition || m?.Response?.jsonWorldComponentContentPaths?.en?.DestinyActivityDefinition;
-            
-            // LIGNE CORRIGÉE : Pas d'en-tête (headers) pour récupérer le fichier sur le serveur statique "/common/"
-            const res = await fetch(`https://www.bungie.net${path}`); 
-            
-            const table = await res.json();
-            const cat = {}, hash2Raid = {};
-            for (const h in table) {
-                const d = table[h], nRaw = d.originalDisplayProperties?.name || d.displayProperties?.name;
-                if (!nRaw) continue;
-                const isRaidOrPantheon = d?.activityModeTypes?.includes(4) || nRaw.toLowerCase().includes('panthéon') || nRaw.toLowerCase().includes('pantheon');
-                if (isRaidOrPantheon) {
-                    const n = normalizeRaidName(nRaw);
-                    if (!cat[n]) cat[n] = { name: n, img: d.pgcrImage, hashes: new Set() };
-                    cat[n].hashes.add(Number(h)); hash2Raid[h] = n;
-                }
-            }
-            raidCatalog = { cat, hash2Raid }; return raidCatalog;
-        }
-
-        async function buildRaidStatData() {
-            const l = document.getElementById('raidstat-loader'), c = document.getElementById('raidstat-content');
-            l.classList.remove('hidden'); l.classList.add('flex'); c.classList.add('hidden');
-            try {
-                const sRes = await fetchAPI(`/Destiny2/${membershipType}/Account/${destinyMembershipId}/Stats/?groups=1,2`);
-                const raid = sRes?.Response?.mergedAllCharacters?.results?.raid?.allTime || {};
-                
-                document.getElementById('raid-overall-stats').innerHTML = `
-                    <div class="bg-destiny-card border border-destiny-border p-6 rounded-2xl"><p class="text-accent text-[10px] uppercase font-bold">Complétions Globales</p><h4 class="text-4xl font-black text-white">${raid.activitiesCleared?.basic?.value || 0}</h4></div>
-                    <div class="bg-destiny-card border border-destiny-border p-6 rounded-2xl"><p class="text-accent text-[10px] uppercase font-bold">Éliminations (Raids)</p><h4 class="text-4xl font-black text-white">${raid.kills?.basic?.value || 0}</h4></div>
-                    <div class="bg-destiny-card border border-destiny-border p-6 rounded-2xl"><p class="text-accent text-[10px] uppercase font-bold">Heures Jouées</p><h4 class="text-4xl font-black text-white">${Math.floor((raid.secondsPlayed?.basic?.value||0)/3600)}h</h4></div>`;
-
-                const chars = Object.keys(globalProfileData.characters.data);
-                const agg = await Promise.all(chars.map(id => fetchAPI(`/Destiny2/${membershipType}/Account/${destinyMembershipId}/Character/${id}/Stats/AggregateActivityStats/`)));
-                
-                const pByHash = {};
-                agg.forEach(r => r?.Response?.activities?.forEach(a => {
-                    const h = a.activityHash, v = a.values;
-                    if (!pByHash[h]) pByHash[h] = { comp: 0, kills: 0, fast: Infinity };
-                    pByHash[h].comp += v.activityCompletions?.basic?.value || 0;
-                    pByHash[h].kills += v.activityKills?.basic?.value || 0;
-                    const f = v.fastestCompletionMsForActivity?.basic?.value || 0; if (f>0 && f<pByHash[h].fast) pByHash[h].fast = f;
-                }));
-
-                const { cat } = await loadRaidCatalog();
-                let list = Object.values(cat).map(r => {
-                    const t = { comp: 0, kills: 0, fast: Infinity };
-                    r.hashes.forEach(h => { const p=pByHash[h]; if(p){ t.comp+=p.comp; t.kills+=p.kills; if(p.fast<t.fast) t.fast=p.fast; } });
-                    return { name: r.name, img: r.img, ...t };
-                });
-                list.sort((a,b) => (b.comp - a.comp) || a.name.localeCompare(b.name));
-
-                document.getElementById('raid-specific-stats').innerHTML = list.map(r => {
-                    const played = r.comp > 0;
-                    const fStr = r.fast !== Infinity ? `${Math.floor((r.fast/1000)/60)}m ${Math.floor((r.fast/1000)%60)}s` : '--';
-                    return `
-                        <div class="relative rounded-2xl overflow-hidden shadow-2xl group border border-destiny-border h-48 ${played ? '' : 'opacity-60'}">
-                            <div class="absolute inset-0 bg-cover bg-center transition-transform group-hover:scale-105" style="background-image: url('https://www.bungie.net${r.img}');"></div>
-                            <div class="absolute inset-0 bg-gradient-to-t from-[#080b10] via-[#080b10]/80 to-transparent"></div>
-                            <div class="relative z-10 p-4 flex flex-col justify-end h-full">
-                                <h4 class="text-lg font-display font-bold text-white uppercase tracking-widest leading-tight">${r.name}</h4>
-                                <div class="flex justify-between mt-2 pt-2 border-t border-white/20">
-                                    <div><p class="text-[9px] text-gray-400 uppercase">Fini</p><p class="text-base font-bold text-accent">${r.comp}</p></div>
-                                    <div class="text-center"><p class="text-[9px] text-gray-400 uppercase">Record</p><p class="text-sm font-bold text-white font-mono mt-0.5">${fStr}</p></div>
-                                    <div class="text-right"><p class="text-[9px] text-gray-400 uppercase">Élim.</p><p class="text-sm font-bold text-white mt-0.5">${r.kills}</p></div>
-                                </div>
-                            </div>
-                        </div>`;
-                }).join('');
-
-                raidStatLoaded = true; l.classList.remove('flex'); l.classList.add('hidden'); c.classList.remove('hidden');
-            } catch (e) { showToast("Erreur RaidStat", "error"); l.classList.remove('flex'); l.classList.add('hidden'); }
-        }
-
-        async function renderVault() {
-            const c = document.getElementById('vault-container'), l = document.getElementById('vault-loader'), p = document.getElementById('vault-progress');
-            c.innerHTML = ''; l.classList.remove('hidden'); l.classList.add('flex');
-
-            const raw = globalProfileData.profileInventory.data.items.filter(i => i.bucketHash === BUCKETS.VAULT);
-            const uHash = [...new Set(raw.map(i => i.itemHash))];
-            let done = 0; const BATCH = 15;
-            for (let i=0; i<uHash.length; i+=BATCH) {
-                const b = uHash.slice(i, i+BATCH); await Promise.all(b.map(h => getManifestDef('DestinyInventoryItemDefinition', h)));
-                done += b.length; p.textContent = `Réseau : ${Math.min(done, uHash.length)} / ${uHash.length}`;
-                if (i+BATCH < uHash.length) await sleep(400);
-            }
-
-            let h='', cnt={all:0, weapon:0, armor:0};
-            for (const item of raw) {
-                const def = manifestCache[`DestinyInventoryItemDefinition_${item.itemHash}`]; if(!def) continue;
-                const isW = def.itemType === ITEM_TYPE.WEAPON, isA = def.itemType === ITEM_TYPE.ARMOR; if(!isW && !isA) continue;
-                const cat = isW?'weapon':'armor'; cnt.all++; cnt[cat]++;
-                const pwr = globalProfileData.itemComponents.instances.data[item.itemInstanceId]?.primaryStat?.value || '';
-                
-                h += `<div class="item-card bg-destiny-card border border-destiny-border rounded-xl p-3 flex gap-3" data-cat="${cat}">
-                        <img src="https://www.bungie.net${def.displayProperties.icon}" class="w-12 h-12 rounded border ${def.inventory?.tierTypeName==='Exotic'?'border-destiny-exotic':'border-gray-600'}">
-                        <div><p class="text-white font-bold text-xs truncate" style="max-width:180px;">${def.displayProperties.name}</p><p class="text-[10px] text-yellow-400 font-mono"><i class="fa-solid fa-bolt text-[9px]"></i> ${pwr}</p></div>
-                      </div>`;
-            }
-            l.classList.add('hidden'); l.classList.remove('flex');
-            document.getElementById('vault-count-badge').textContent = `${cnt.all} Objets`; document.getElementById('vault-count-badge').classList.remove('hidden');
-            document.querySelectorAll('#vault-filter-bar [data-count]').forEach(el => el.textContent = cnt[el.dataset.count] || 0);
-            document.getElementById('vault-filter-bar').classList.replace('hidden', 'flex');
-            c.innerHTML = h || `<div class="col-span-full text-center text-gray-500 py-10">Aucun élément trouvé.</div>`; vaultLoaded = true;
-        }
-
-        function setVaultFilter(f, btn) {
-            vaultFilter = f; document.querySelectorAll('.vault-filter-btn').forEach(b => { b.classList.remove('bg-accent', 'text-black'); b.classList.add('text-gray-400'); });
-            btn.classList.remove('text-gray-400'); btn.classList.add('bg-accent', 'text-black');
-            document.querySelectorAll('#vault-container .item-card').forEach(c => c.style.display = (vaultFilter==='all' || c.dataset.cat===vaultFilter) ? '' : 'none');
-        }
-    </script>
+function setSetting(key, val){ settings[key] = val; saveSettings(); }
+function toggleSetting(key, el){ settings[key] = !settings[key]; saveSettings(); el.classList.toggle('on', settings[key]); if ((key==='showPower'||key==='hideNonExotic')){ vaultLoaded=false; if (document.getElementById('view-vault').classList.contains('active')) renderVault(); if (modalCharOpen) renderModalContent(modalCharOpen); } }
+function changeAutoRefresh(v){ settings.autoRefresh = parseInt(v); saveSettings(); setupAutoRefresh(); }
+async function changePlatform(id){
+    const m = memberships.find(x=>x.membershipId===id); if (!m) return;
+    settings.membershipId = m.membershipId; settings.membershipType = m.membershipType; saveSettings();
+    showToast('Plateforme : '+(PLATFORMS[m.membershipType]||m.membershipType),'info');
+    vaultLoaded = raidLoaded = false; raidCatalog = null;
+    const p = await fetchAPI(profileUrl()); profile = p.Response; renderCharacters();
+    fetchAPI('/Destiny2/'+settings.membershipType+'/Account/'+settings.membershipId+'/Stats/?groups=1,2').then(s=>{ if(s.Response) renderDashboard(s.Response.mergedAllCharacters.results); });
+    renderSettings();
+}
+async function changeLang(v){
+    settings.lang = v; saveSettings();
+    document.getElementById('view-settings').innerHTML = '<div class="flex flex-col items-center py-20"><div class="loader-ring mb-4"></div><p class="text-accent font-display uppercase tracking-widest">Changement de langue...</p></div>';
+    try { await Manifest.ensure(); raidCatalog=null; raidLoaded=false; vaultLoaded=false; renderCharacters();
+        if (document.getElementById('view-vault').classList.contains('active')) renderVault();
+        showToast('Langue mise à jour','info');
+    } catch(e){ showToast('Échec du changement de langue','error'); }
+    location.reload();
+}
+async function forceManifest(){
+    showToast('Mise à jour du Manifeste...','info');
+    await Manifest.clearAll();
+    try { await Manifest.ensure(); raidCatalog=null; raidLoaded=false; vaultLoaded=false; renderCharacters(); renderSettings(); showToast('Manifeste à jour','info'); }
+    catch(e){ showToast('Échec de la mise à jour','error'); }
+}
+async function clearAllData(){
+    if (!confirm('Effacer le cache, les réglages et la session ? Vous devrez vous reconnecter.')) return;
+    await localforage.clear();
+    localStorage.removeItem('hub_settings'); localStorage.removeItem('bungie_access_token'); localStorage.removeItem('bungie_client_id');
+    location.href = location.pathname;
+}
+</script>
 </body>
 </html>
