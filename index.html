@@ -37,7 +37,6 @@
         @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
         .glow-accent { box-shadow: 0 0 15px rgb(var(--accent-rgb) / 0.30); }
         .glow-accent-hover:hover { box-shadow: 0 0 25px rgb(var(--accent-rgb) / 0.60); }
-        .text-glow { filter: drop-shadow(0 0 15px rgb(var(--accent-rgb) / 0.5)); }
         .theme-btn { border: 2px solid #2a3441; transition: all 0.25s; }
         .theme-btn.selected { border-color: rgb(var(--accent-rgb)); background: rgb(var(--accent-rgb) / 0.10); }
         .theme-btn .check { opacity: 0; transition: opacity 0.2s; }
@@ -49,7 +48,7 @@
     <div id="login-view" class="flex-1 flex flex-col items-center justify-center p-6 text-center bg-[url('https://www.bungie.net/img/theme/destiny/bgs/bg_destiny2_1.jpg')] bg-cover bg-center">
         <div class="absolute inset-0 bg-destiny-bg/85 backdrop-blur-md z-0"></div>
         <div class="bg-destiny-panel/90 p-10 rounded-2xl shadow-2xl max-w-lg w-full border border-destiny-border relative z-10">
-            <i class="fa-brands fa-space-awesome text-6xl text-accent mb-6 text-glow"></i>
+            <i class="fa-brands fa-space-awesome text-6xl text-accent mb-6"></i>
             <h1 class="text-4xl font-display font-bold tracking-tight text-white mb-2 uppercase">Gardiens Hub</h1>
             <p class="text-destiny-text mb-8 text-sm">Gestion avancée de l'inventaire, RaidStat et statistiques pour Destiny&nbsp;2.</p>
             <button onclick="loginWithBungie()" class="w-full bg-accent hover:bg-accent-hover text-black font-bold py-4 px-6 rounded-xl transition-all flex items-center justify-center gap-3 glow-accent text-lg uppercase tracking-wider font-display">
@@ -190,8 +189,19 @@
     <div id="toast-container" class="fixed bottom-6 right-6 z-[9999] flex flex-col gap-3 pointer-events-none"></div>
 
     <script>
-        const API_KEY = '1376a5de5aa94d82819aa9a06d7cb260';
-        const CLIENT_ID = '52876';
+        // ==========================================
+        // ROTATION DES CLÉS API (Load Balancing Front-End)
+        // ==========================================
+        const API_APPS = [
+            { key: '1376a5de5aa94d82819aa9a06d7cb260', clientId: '52876' },
+            { key: '1c08673f50a64452916b89c36a2cbf50', clientId: '53127' }
+        ];
+        
+        // Sélectionne aléatoirement une des deux applications pour la session en cours
+        const activeApp = API_APPS[Math.floor(Math.random() * API_APPS.length)];
+        const API_KEY = activeApp.key;
+        const CLIENT_ID = activeApp.clientId;
+        console.log(`Application activée : Client ID ${CLIENT_ID}`);
 
         let accessToken = localStorage.getItem('bungie_access_token');
         let destinyMembershipId = null, membershipType = null, globalProfileData = null;
@@ -216,8 +226,6 @@
         const classHashes = { 671679327: 'Chasseur', 3655393761: 'Titan', 2271682572: 'Arcaniste' };
         const raceHashes = { 3887404748: 'Humain', 898687150: 'Exo', 2803282938: 'Éveillé' };
         const ITEM_TYPE = { ARMOR: 2, WEAPON: 3 };
-        const CLASS_TYPE_BY_HASH = { 3655393761: 0, 671679327: 1, 2271682572: 2 };
-        const CLASS_ICON_BY_HASH = { 3655393761: 'fa-shield', 671679327: 'fa-angle-up', 2271682572: 'fa-book' };
 
         const THEMES = { gold: {name:'Or',rgb:'212 175 55',hover:'241 196 15'}, blue: {name:'Bleu',rgb:'59 130 246',hover:'96 165 250'}, red: {name:'Rouge',rgb:'239 68 68',hover:'248 113 113'}, green: {name:'Vert',rgb:'16 185 129',hover:'52 211 153'}, purple: {name:'Violet',rgb:'139 92 246',hover:'167 139 250'} };
         const sleep = ms => new Promise(r => setTimeout(r, ms));
@@ -334,9 +342,6 @@
             });
         }
 
-        // ============================================================
-        // MODAL INVENTAIRE : ARMES & ARMURES AVEC ACTIONS EQUIP/TRANSFERT
-        // ============================================================
         async function openInventoryModal(charId, className) {
             const m = document.getElementById('inventory-modal'), c = document.getElementById('modal-inventory-content');
             m.classList.remove('hidden'); m.classList.add('flex'); setTimeout(() => { m.classList.remove('opacity-0'); document.getElementById('inventory-modal-content-box').classList.remove('scale-95'); }, 10);
@@ -413,22 +418,24 @@
             } catch (e) {}
         }
 
-        // ============================================================
-        // RAIDSTAT & PANTHEON
-        // ============================================================
         function normalizeRaidName(name) { return (name||'').replace(/\s*:\s*(Master|Maître|Prestige|Legend|Légende|Normal|Héroïque|Heroic)\b.*$/i, '').replace(/\s*\((Master|Maître|Prestige|Legend|Légende)\)\s*$/i, '').trim(); }
 
+        // ==========================================
+        // CORRECTION CORS : Téléchargement du Manifeste Statique
+        // ==========================================
         async function loadRaidCatalog() {
             if (raidCatalog) return raidCatalog;
             const m = await fetchAPI('/Destiny2/Manifest/', 'GET', null, true);
             const path = m?.Response?.jsonWorldComponentContentPaths?.fr?.DestinyActivityDefinition || m?.Response?.jsonWorldComponentContentPaths?.en?.DestinyActivityDefinition;
-            const res = await fetch(`https://www.bungie.net${path}`, { headers: { 'X-API-Key': API_KEY } });
+            
+            // LIGNE CORRIGÉE : Pas d'en-tête (headers) pour récupérer le fichier sur le serveur statique "/common/"
+            const res = await fetch(`https://www.bungie.net${path}`); 
+            
             const table = await res.json();
             const cat = {}, hash2Raid = {};
             for (const h in table) {
                 const d = table[h], nRaw = d.originalDisplayProperties?.name || d.displayProperties?.name;
                 if (!nRaw) continue;
-                // Capture les raids (Mode 4) ET spécifiquement le Panthéon
                 const isRaidOrPantheon = d?.activityModeTypes?.includes(4) || nRaw.toLowerCase().includes('panthéon') || nRaw.toLowerCase().includes('pantheon');
                 if (isRaidOrPantheon) {
                     const n = normalizeRaidName(nRaw);
@@ -493,9 +500,6 @@
             } catch (e) { showToast("Erreur RaidStat", "error"); l.classList.remove('flex'); l.classList.add('hidden'); }
         }
 
-        // ============================================================
-        // COFFRE FORT (RATE LIMITING OPTIMISE)
-        // ============================================================
         async function renderVault() {
             const c = document.getElementById('vault-container'), l = document.getElementById('vault-loader'), p = document.getElementById('vault-progress');
             c.innerHTML = ''; l.classList.remove('hidden'); l.classList.add('flex');
