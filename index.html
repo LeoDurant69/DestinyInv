@@ -419,8 +419,8 @@ function renderDashboard(res){
         + hiTxt('K/D Épreuve', pvp.killsDeathsRatio?.basic?.displayValue||'0.0','fa-gun','#f59e0b')
         + '</div>'
         + '<div class="grid grid-cols-1 md:grid-cols-3 gap-5">'
-        + card('Joueur c. Environnement','fa-earth-americas',pve,['activitiesCleared','kills','deaths','killsDeathsRatio','efficiency','secondsPlayed','longestKillSpree','bestSingleGameKills','resurrectionsPerformed','suicides'])
-        + card('Joueur c. Joueur','fa-crosshairs',pvp,['activitiesEntered','activitiesWon','kills','deaths','killsDeathsRatio','killsDeathsAssists','efficiency','combatRating','bestSingleGameKills','longestKillSpree','secondsPlayed'])
+        + card('PVE','fa-earth-americas',pve,['activitiesCleared','kills','deaths','killsDeathsRatio','efficiency','secondsPlayed','longestKillSpree','bestSingleGameKills','resurrectionsPerformed','suicides'])
+        + card('PVP','fa-crosshairs',pvp,['activitiesEntered','activitiesWon','kills','deaths','killsDeathsRatio','killsDeathsAssists','efficiency','combatRating','bestSingleGameKills','longestKillSpree','secondsPlayed'])
         + card('Gambit','fa-coins',gbt,['activitiesEntered','activitiesWon','kills','deaths','killsDeathsRatio','efficiency','secondsPlayed'])
         + '</div>';
     runCounts(c);
