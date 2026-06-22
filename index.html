@@ -94,7 +94,7 @@ select{ background:#0a0e16; }
     <div class="absolute inset-0 bg-gradient-to-b from-destiny-bg/60 via-destiny-bg/85 to-destiny-bg"></div>
     <div class="relative z-10 clip frame w-full max-w-md">
         <div class="clip bg-destiny-panel/95 p-10 text-center">
-            <div class="orb mx-auto mb-7"></div>
+            <div class="mx-auto mb-7 w-20 h-20 flex items-center justify-center text-accent" style="filter:drop-shadow(0 0 22px rgb(var(--accent-rgb)/.65));"><svg viewBox="0 0 100 100" class="w-full h-full" fill="currentColor" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><path d="M50 50 C41 34 44 15 51 5 C57 19 60 37 50 50 Z" transform="rotate(0 50 50)"/><path d="M50 50 C41 34 44 15 51 5 C57 19 60 37 50 50 Z" transform="rotate(120 50 50)"/><path d="M50 50 C41 34 44 15 51 5 C57 19 60 37 50 50 Z" transform="rotate(240 50 50)"/></svg></div>
             <p class="eyebrow text-accent text-[11px] mb-2">Destiny 2 · Companion</p>
             <h1 class="font-display font-bold text-5xl tracking-tight text-white leading-none uppercase">Gardiens Hub</h1>
             <p class="text-destiny-text mt-4 mb-8 text-sm leading-relaxed">Inventaire, coffre-fort, statistiques et incursions — synchronisés avec votre compte Bungie.</p>
@@ -115,7 +115,7 @@ select{ background:#0a0e16; }
     <!-- SIDEBAR -->
     <aside class="w-[74px] lg:w-64 shrink-0 bg-destiny-panel/70 backdrop-blur-xl border-r border-destiny-border flex flex-col">
         <div class="h-[72px] flex items-center gap-3 px-4 lg:px-5 border-b border-destiny-border shrink-0">
-            <div class="w-10 h-10 clip btn-accent flex items-center justify-center text-lg shrink-0"><i class="fa-solid fa-ghost"></i></div>
+            <div class="w-10 h-10 clip btn-accent flex items-center justify-center shrink-0"><svg viewBox="0 0 100 100" class="w-6 h-6" fill="currentColor" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><path d="M50 50 C41 34 44 15 51 5 C57 19 60 37 50 50 Z" transform="rotate(0 50 50)"/><path d="M50 50 C41 34 44 15 51 5 C57 19 60 37 50 50 Z" transform="rotate(120 50 50)"/><path d="M50 50 C41 34 44 15 51 5 C57 19 60 37 50 50 Z" transform="rotate(240 50 50)"/></svg></div>
             <div class="hidden lg:block leading-none"><h1 class="font-display font-bold text-lg tracking-widest uppercase text-white">Gardiens</h1><span class="text-[10px] text-accent font-mono tracking-[.2em]">HUB · D2</span></div>
         </div>
         <nav class="flex-1 p-2 lg:p-3 space-y-1.5 overflow-y-auto custom-scroll">
@@ -248,6 +248,20 @@ const setLoader = t => { const el=document.getElementById('loader-subtext'); if(
 const TIER_EDGE = tr => tr==='Exotic'?'#ceae33':tr==='Legendary'?'#a855f7':tr==='Rare'?'#3b82f6':'#5b6472';
 const tierBorder = tr => tr==='Exotic'?'border-destiny-exotic':tr==='Legendary'?'border-destiny-legendary':tr==='Rare'?'border-destiny-rare':'border-gray-600';
 
+// Tricorne — emblème de Destiny (trois lames à 120°), stylisé en SVG, hérite de la couleur du texte.
+const tricorn = (cls='') => '<svg viewBox="0 0 100 100" class="'+cls+'" fill="currentColor" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><g>'
+    + '<path d="M50 50 C41 34 44 15 51 5 C57 19 60 37 50 50 Z" transform="rotate(0 50 50)"/>'
+    + '<path d="M50 50 C41 34 44 15 51 5 C57 19 60 37 50 50 Z" transform="rotate(120 50 50)"/>'
+    + '<path d="M50 50 C41 34 44 15 51 5 C57 19 60 37 50 50 Z" transform="rotate(240 50 50)"/>'
+    + '</g></svg>';
+
+// Symbole de classe officiel (depuis le Manifeste) ; repli icône si indisponible.
+function classIcon(hash, cls='w-4 h-4 object-contain inline-block'){
+    const c = Manifest.getClass && Manifest.getClass(hash);
+    if (c && c.ic) return '<img src="https://www.bungie.net'+c.ic+'" class="'+cls+'" alt="'+(c.n||'')+'">';
+    return '<i class="fa-solid '+(CLASS_ICON[hash]||'fa-user')+'"></i>';
+}
+
 // Compteurs animés
 function animateValue(el){
     const to = parseFloat(el.dataset.to); if (isNaN(to)) return;
@@ -263,9 +277,10 @@ const skeleton = (n,cls) => '<div class="grid '+cls+' gap-4">'+Array(n).fill('<d
 // MANIFESTE LOCAL (IndexedDB, 1 téléchargement / version)
 // =====================================================================
 const Manifest = {
-    items:null, activities:null, stats:null, full:false, partial:{},
+    items:null, activities:null, stats:null, classes:null, full:false, partial:{},
     getItem(h){ return (this.items&&this.items[h])||this.partial['i'+h]; },
     getStat(h){ return this.stats && this.stats[h]; },
+    getClass(h){ return this.classes && this.classes[h]; },
     async ensure(){
         const lang = settings.lang;
         const idx = await fetchAPI('/Destiny2/Manifest/','GET',null,true);
@@ -277,20 +292,23 @@ const Manifest = {
             this.items = await localforage.getItem('items_'+lang);
             this.activities = await localforage.getItem('acts_'+lang);
             this.stats = await localforage.getItem('stats_'+lang);
-            if (this.items && this.activities && this.stats){ this.full=true; return; }
+            this.classes = await localforage.getItem('classes_'+lang);
+            if (this.items && this.activities && this.stats && this.classes){ this.full=true; return; }
         }
         setLoader('Téléchargement du Manifeste ('+lang+') — première fois…');
-        const [ri,ra,rs] = await Promise.all([
+        const [ri,ra,rs,rcl] = await Promise.all([
             fetch('https://www.bungie.net'+comp.DestinyInventoryItemDefinition).then(r=>r.json()),
             fetch('https://www.bungie.net'+comp.DestinyActivityDefinition).then(r=>r.json()),
-            fetch('https://www.bungie.net'+comp.DestinyStatDefinition).then(r=>r.json())
+            fetch('https://www.bungie.net'+comp.DestinyStatDefinition).then(r=>r.json()),
+            fetch('https://www.bungie.net'+comp.DestinyClassDefinition).then(r=>r.json())
         ]);
         setLoader('Indexation…');
         const items={}; for (const h in ri){ const d=ri[h]; if(!d.displayProperties) continue; items[h]={n:d.displayProperties.name,ic:d.displayProperties.icon,t:d.itemType,tn:d.itemTypeDisplayName,tr:d.inventory?.tierTypeName,ct:d.classType,st:d.itemSubType}; }
         const acts={}; for (const h in ra){ const d=ra[h]; const n=d.originalDisplayProperties?.name||d.displayProperties?.name; if(!n) continue; acts[h]={n,img:d.pgcrImage,m:d.activityModeTypes||[]}; }
         const stats={}; for (const h in rs){ const d=rs[h]; if(!d.displayProperties?.name) continue; stats[h]={n:d.displayProperties.name,ic:d.displayProperties.icon}; }
-        this.items=items; this.activities=acts; this.stats=stats; this.full=true;
-        await localforage.setItem('items_'+lang,items); await localforage.setItem('acts_'+lang,acts); await localforage.setItem('stats_'+lang,stats); await localforage.setItem(vKey,version);
+        const classes={}; for (const h in rcl){ const d=rcl[h]; classes[h]={n:d.displayProperties?.name,ic:d.displayProperties?.icon}; }
+        this.items=items; this.activities=acts; this.stats=stats; this.classes=classes; this.full=true;
+        await localforage.setItem('items_'+lang,items); await localforage.setItem('acts_'+lang,acts); await localforage.setItem('stats_'+lang,stats); await localforage.setItem('classes_'+lang,classes); await localforage.setItem(vKey,version);
     },
     async resolve(hashes){
         if (this.full) return;
@@ -300,7 +318,7 @@ const Manifest = {
             if (i+20<miss.length) await sleep(300);
         }
     },
-    async clearAll(){ const keys=await localforage.keys(); for (const k of keys) if(/^(ver|items|acts|stats)_/.test(k)) await localforage.removeItem(k); this.items=this.activities=this.stats=null; this.full=false; this.partial={}; }
+    async clearAll(){ const keys=await localforage.keys(); for (const k of keys) if(/^(ver|items|acts|stats|classes)_/.test(k)) await localforage.removeItem(k); this.items=this.activities=this.stats=this.classes=null; this.full=false; this.partial={}; }
 };
 
 // =====================================================================
@@ -419,8 +437,8 @@ function renderDashboard(res){
         + hiTxt('K/D Épreuve', pvp.killsDeathsRatio?.basic?.displayValue||'0.0','fa-gun','#f59e0b')
         + '</div>'
         + '<div class="grid grid-cols-1 md:grid-cols-3 gap-5">'
-        + card('PVE','fa-earth-americas',pve,['activitiesCleared','kills','deaths','killsDeathsRatio','efficiency','secondsPlayed','longestKillSpree','bestSingleGameKills','resurrectionsPerformed','suicides'])
-        + card('PVP','fa-crosshairs',pvp,['activitiesEntered','activitiesWon','kills','deaths','killsDeathsRatio','killsDeathsAssists','efficiency','combatRating','bestSingleGameKills','longestKillSpree','secondsPlayed'])
+        + card('Joueur c. Environnement','fa-earth-americas',pve,['activitiesCleared','kills','deaths','killsDeathsRatio','efficiency','secondsPlayed','longestKillSpree','bestSingleGameKills','resurrectionsPerformed','suicides'])
+        + card('Joueur c. Joueur','fa-crosshairs',pvp,['activitiesEntered','activitiesWon','kills','deaths','killsDeathsRatio','killsDeathsAssists','efficiency','combatRating','bestSingleGameKills','longestKillSpree','secondsPlayed'])
         + card('Gambit','fa-coins',gbt,['activitiesEntered','activitiesWon','kills','deaths','killsDeathsRatio','efficiency','secondsPlayed'])
         + '</div>';
     runCounts(c);
@@ -436,7 +454,7 @@ function renderCharacters(){
         c.innerHTML += '<div class="surface lift clip overflow-hidden flex flex-col">'
             + '<div class="h-32 bg-cover bg-center relative" style="background-image:url(\'https://www.bungie.net'+ch.emblemBackgroundPath+'\');">'
             + '<div class="absolute inset-0 bg-gradient-to-t from-destiny-card via-destiny-card/30 to-transparent"></div>'
-            + '<div class="absolute bottom-3 left-4"><h3 class="font-display font-bold text-2xl text-white uppercase tracking-wide leading-none drop-shadow">'+classHashes[ch.classHash]+'</h3><p class="text-gray-300 text-xs font-semibold mt-1">'+raceHashes[ch.raceHash]+'</p></div>'
+            + '<div class="absolute bottom-3 left-4 flex items-center gap-2.5">'+classIcon(ch.classHash,'w-7 h-7 object-contain drop-shadow shrink-0')+'<div><h3 class="font-display font-bold text-2xl text-white uppercase tracking-wide leading-none drop-shadow">'+classHashes[ch.classHash]+'</h3><p class="text-gray-300 text-xs font-semibold mt-1">'+raceHashes[ch.raceHash]+'</p></div></div>'
             + '<div class="absolute top-3 right-4 text-right"><div class="font-display font-bold text-3xl text-yellow-400 leading-none flex items-center gap-1 drop-shadow"><i class="fa-solid fa-bolt text-xl"></i>'+ch.light+'</div></div></div>'
             + '<div class="p-5 flex-1 flex flex-col">'
             + '<p class="eyebrow text-[10px] text-gray-500 mb-2">Caractéristiques</p>'
@@ -454,7 +472,8 @@ async function openModal(charId){
     modalCharOpen=charId;
     const m=document.getElementById('inventory-modal'); m.classList.remove('hidden'); m.classList.add('flex');
     setTimeout(()=>{ m.classList.remove('opacity-0'); document.getElementById('inventory-modal-content-box').classList.remove('scale-95'); },10);
-    document.getElementById('modal-char-name').textContent = classHashes[profile.characters.data[charId].classHash];
+    const chc = profile.characters.data[charId].classHash;
+    document.getElementById('modal-char-name').innerHTML = '<span class="inline-flex items-center gap-3">'+classIcon(chc,'w-7 h-7 object-contain')+classHashes[chc]+'</span>';
     await renderModalContent(charId);
 }
 function closeModal(){
@@ -508,7 +527,7 @@ async function renderVault(){
         if (settings.hideNonExotic && d.tr!=='Exotic') continue;
         const cat=isW?'weapon':'armor'; cnt.all++; cnt[cat]++; const edge=TIER_EDGE(d.tr); const ct=isA?d.ct:3;
         let btns=''; chars.forEach(ch=>{ const ok=ct===3||ct===undefined||CLASS_TYPE[ch.classHash]===ct;
-            btns += ok?'<button onclick="doTransfer(this,\''+it.itemHash+'\',\''+it.itemInstanceId+'\',\''+ch.characterId+'\',false)" class="flex-1 bg-destiny-border hover:bg-accent hover:text-black py-1.5 rounded text-xs transition" title="Vers '+classHashes[ch.classHash]+'"><i class="fa-solid '+CLASS_ICON[ch.classHash]+'"></i></button>':'<button disabled class="flex-1 bg-black/40 py-1.5 rounded text-xs text-gray-700 cursor-not-allowed" title="Classe incompatible"><i class="fa-solid '+CLASS_ICON[ch.classHash]+'"></i></button>'; });
+            btns += ok?'<button onclick="doTransfer(this,\''+it.itemHash+'\',\''+it.itemInstanceId+'\',\''+ch.characterId+'\',false)" class="flex-1 bg-destiny-border hover:bg-accent py-1.5 rounded text-xs transition flex items-center justify-center" title="Vers '+classHashes[ch.classHash]+'">'+classIcon(ch.classHash,'w-4 h-4 object-contain')+'</button>':'<button disabled class="flex-1 bg-black/40 py-1.5 rounded text-xs cursor-not-allowed flex items-center justify-center opacity-30" title="Classe incompatible">'+classIcon(ch.classHash,'w-4 h-4 object-contain')+'</button>'; });
         html += '<div class="item-card surface lift rounded-xl p-3 flex flex-col gap-3 overflow-hidden" data-cat="'+cat+'" style="border-left:3px solid '+edge+'">'
             + '<div class="flex gap-3 items-center"><img src="https://www.bungie.net'+d.ic+'" class="w-12 h-12 rounded border-2 shrink-0" style="border-color:'+edge+'">'
             + '<div class="overflow-hidden flex-1"><div class="flex justify-between items-center gap-2"><p class="text-white font-bold text-xs truncate" '+(d.tr==='Exotic'?'style="color:#ceae33"':'')+'>'+d.n+'</p>'+(settings.showPower&&powerOf(it.itemInstanceId)?'<span class="text-yellow-400 font-bold text-[11px] shrink-0 font-mono"><i class="fa-solid fa-bolt"></i>'+powerOf(it.itemInstanceId)+'</span>':'')+'</div>'
